@@ -48,9 +48,9 @@
                             </template>
                         </Column>
 
-                        <Column field="submissions_count" header="Submissions" sortable>
+                        <Column field="fields_count" header="Generated" sortable>
                             <template #body="{ data }">
-                                <Tag :value="data.submissions_count" severity="success" />
+                                <Tag :value="data.fields_count" severity="success" />
                             </template>
                         </Column>
 
@@ -85,8 +85,8 @@
                                         size="small"
                                         severity="info"
                                         outlined
-                                        @click="viewSubmissions(data.id)"
-                                        v-tooltip.top="'View Submissions'"
+                                        @click="viewFormMetadata(data)"
+                                        v-tooltip.top="'View Form Metadata'"
                                     />
                                     <Button
                                         icon="pi pi-external-link"
@@ -125,6 +125,46 @@
             </Card>
         </div>
 
+        <!-- Form Metadata Dialog -->
+        <Dialog
+            v-model:visible="metadataDialog"
+            :style="{ width: '700px' }"
+            header="Form Metadata"
+            :modal="true"
+        >
+            <DataTable
+                v-if="selectedForm"
+                :value="metadataRows"
+                stripedRows
+                responsiveLayout="scroll"
+                class="p-datatable-sm"
+            >
+                <Column field="property" header="Property" style="width: 40%">
+                    <template #body="{ data }">
+                        <span class="font-medium">{{ data.property }}</span>
+                    </template>
+                </Column>
+                <Column field="value" header="Value">
+                    <template #body="{ data }">
+                        <span v-if="data.type === 'code'">
+                            <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm">
+                                {{ data.value }}
+                            </code>
+                        </span>
+                        <Tag
+                            v-else-if="data.type === 'tag'"
+                            :value="data.value"
+                            :severity="data.severity"
+                        />
+                        <span v-else>{{ data.value }}</span>
+                    </template>
+                </Column>
+            </DataTable>
+            <template #footer>
+                <Button label="Close" icon="pi pi-times" @click="metadataDialog = false" />
+            </template>
+        </Dialog>
+
         <!-- Delete Confirmation Dialog -->
         <Dialog
             v-model:visible="deleteDialog"
@@ -136,7 +176,7 @@
                 <i class="pi pi-exclamation-triangle text-3xl text-red-500"></i>
                 <span v-if="formToDelete">
                     Are you sure you want to delete <b>{{ formToDelete.title }}</b>?
-                    This will also delete all fields and submissions.
+                    This will delete all form fields permanently.
                 </span>
             </div>
             <template #footer>
@@ -148,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -163,6 +203,51 @@ const props = defineProps({
 
 const deleteDialog = ref(false);
 const formToDelete = ref(null);
+const metadataDialog = ref(false);
+const selectedForm = ref(null);
+
+const metadataRows = computed(() => {
+    if (!selectedForm.value) return [];
+
+    return [
+        {
+            property: 'Form ID',
+            value: selectedForm.value.id,
+            type: 'text'
+        },
+        {
+            property: 'Form Title',
+            value: selectedForm.value.title,
+            type: 'text'
+        },
+        {
+            property: 'Slug',
+            value: selectedForm.value.slug,
+            type: 'code'
+        },
+        {
+            property: 'Created At',
+            value: formatDateTime(selectedForm.value.created_at),
+            type: 'text'
+        },
+        {
+            property: 'Updated At',
+            value: formatDateTime(selectedForm.value.updated_at),
+            type: 'text'
+        },
+        {
+            property: 'Number of Fields',
+            value: selectedForm.value.fields_count,
+            type: 'text'
+        },
+        {
+            property: 'Status',
+            value: selectedForm.value.is_active ? 'Active' : 'Inactive',
+            type: 'tag',
+            severity: selectedForm.value.is_active ? 'success' : 'secondary'
+        }
+    ];
+});
 
 const createForm = () => {
     router.visit('/forms/create');
@@ -172,8 +257,9 @@ const editForm = (id) => {
     router.visit(`/forms/${id}/edit`);
 };
 
-const viewSubmissions = (id) => {
-    router.visit(`/forms/${id}/submissions`);
+const viewFormMetadata = (form) => {
+    selectedForm.value = form;
+    metadataDialog.value = true;
 };
 
 const openPublicForm = (slug) => {
@@ -201,6 +287,17 @@ const formatDate = (dateString) => {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
+    });
+};
+
+const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
     });
 };
 </script>

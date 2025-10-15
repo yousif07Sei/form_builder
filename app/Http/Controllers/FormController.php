@@ -14,7 +14,7 @@ class FormController extends Controller
      */
     public function index()
     {
-        $forms = Form::withCount(['fields', 'submissions'])
+        $forms = Form::withCount('fields')
             ->latest()
             ->get();
 
