@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
+    <div class="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
         <div class="max-w-2xl mx-auto">
             <!-- Form Header -->
             <div class="text-center mb-8">
@@ -27,13 +27,309 @@
                             :key="field.id"
                             class="space-y-2"
                         >
-                            <label
-                                :for="field.name"
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                            >
-                                {{ field.label }}
-                                <span v-if="field.is_required" class="text-red-500">*</span>
-                            </label>
+                            <!-- Container field -->
+                            <template v-if="field.type === 'container'">
+                                <div
+                                    class="rounded p-4"
+                                    :class="{ 'border border-gray-300 dark:border-gray-600': field.metadata?.containerBorder }"
+                                    :style="{ padding: (field.metadata?.containerPadding || 16) + 'px' }"
+                                >
+                                    <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                        {{ field.label }}
+                                    </label>
+
+                                    <!-- Container Description -->
+                                    <div v-if="field.metadata?.containerDescription" class="mb-4 p-2 bg-primary-50 dark:bg-primary-900/20 rounded text-sm text-gray-600 dark:text-gray-400">
+                                        <i class="pi pi-info-circle mr-1"></i>
+                                        {{ field.metadata.containerDescription }}
+                                    </div>
+
+                                    <!-- Render nested fields -->
+                                    <div class="space-y-4">
+                                        <div
+                                            v-for="nestedField in (field.metadata?.containerChildren || [])"
+                                            :key="nestedField.tempId"
+                                        >
+                                            <!-- Check if nested field is a column layout -->
+                                            <template v-if="nestedField.type === '2-columns' || nestedField.type === '3-columns' || nestedField.type === '4-columns' || nestedField.type === 'grid-layout'">
+                                                <div>
+                                                    <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                                        {{ nestedField.label }}
+                                                    </label>
+                                                    <div
+                                                        class="grid"
+                                                        :style="{
+                                                            gridTemplateColumns: `repeat(${nestedField.columns || 2}, 1fr)`,
+                                                            gap: `${nestedField.gap || 16}px`
+                                                        }"
+                                                    >
+                                                        <div
+                                                            v-for="colIdx in (nestedField.columns || 2)"
+                                                            :key="colIdx"
+                                                            class="space-y-4"
+                                                        >
+                                                            <!-- Render fields for this column -->
+                                                            <div
+                                                                v-for="colField in getNestedColumnFields(nestedField, colIdx - 1)"
+                                                                :key="colField.tempId"
+                                                                class="space-y-2"
+                                                            >
+                                                                <label
+                                                                    :for="colField.name"
+                                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                                                >
+                                                                    {{ colField.label }}
+                                                                    <span v-if="colField.is_required" class="text-red-500">*</span>
+                                                                </label>
+
+                                                                <!-- Render field inputs -->
+                                                                <InputText
+                                                                    v-if="colField.type === 'text'"
+                                                                    :id="colField.name"
+                                                                    v-model="formData[colField.name]"
+                                                                    :placeholder="colField.placeholder"
+                                                                    class="w-full"
+                                                                    :class="{ 'p-invalid': errors[colField.name] }"
+                                                                />
+
+                                                                <InputText
+                                                                    v-else-if="colField.type === 'email'"
+                                                                    :id="colField.name"
+                                                                    v-model="formData[colField.name]"
+                                                                    type="email"
+                                                                    :placeholder="colField.placeholder"
+                                                                    class="w-full"
+                                                                    :class="{ 'p-invalid': errors[colField.name] }"
+                                                                />
+
+                                                                <InputText
+                                                                    v-else-if="colField.type === 'number'"
+                                                                    :id="colField.name"
+                                                                    v-model="formData[colField.name]"
+                                                                    type="number"
+                                                                    :placeholder="colField.placeholder"
+                                                                    class="w-full"
+                                                                    :class="{ 'p-invalid': errors[colField.name] }"
+                                                                />
+
+                                                                <Textarea
+                                                                    v-else-if="colField.type === 'textarea'"
+                                                                    :id="colField.name"
+                                                                    v-model="formData[colField.name]"
+                                                                    :placeholder="colField.placeholder"
+                                                                    rows="4"
+                                                                    class="w-full"
+                                                                    :class="{ 'p-invalid': errors[colField.name] }"
+                                                                />
+
+                                                                <Dropdown
+                                                                    v-else-if="colField.type === 'select'"
+                                                                    :id="colField.name"
+                                                                    v-model="formData[colField.name]"
+                                                                    :options="colField.options"
+                                                                    :placeholder="colField.placeholder || 'Select an option'"
+                                                                    class="w-full"
+                                                                    :class="{ 'p-invalid': errors[colField.name] }"
+                                                                />
+
+                                                                <!-- Help text -->
+                                                                <small v-if="colField.help_text" class="text-gray-500 dark:text-gray-400">
+                                                                    {{ colField.help_text }}
+                                                                </small>
+
+                                                                <!-- Error message -->
+                                                                <small v-if="errors[colField.name]" class="p-error block">
+                                                                    {{ errors[colField.name] }}
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <!-- Regular nested fields -->
+                                            <template v-else>
+                                                <div class="space-y-2">
+                                                    <label
+                                                        :for="nestedField.name"
+                                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                                    >
+                                                        {{ nestedField.label }}
+                                                        <span v-if="nestedField.is_required" class="text-red-500">*</span>
+                                                    </label>
+
+                                                    <!-- Render nested field input -->
+                                                    <InputText
+                                                        v-if="nestedField.type === 'text'"
+                                                        :id="nestedField.name"
+                                                        v-model="formData[nestedField.name]"
+                                                        :placeholder="nestedField.placeholder"
+                                                        class="w-full"
+                                                        :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                    />
+
+                                                    <InputText
+                                                        v-else-if="nestedField.type === 'email'"
+                                                        :id="nestedField.name"
+                                                        v-model="formData[nestedField.name]"
+                                                        type="email"
+                                                        :placeholder="nestedField.placeholder"
+                                                        class="w-full"
+                                                        :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                    />
+
+                                                    <InputText
+                                                        v-else-if="nestedField.type === 'number'"
+                                                        :id="nestedField.name"
+                                                        v-model="formData[nestedField.name]"
+                                                        type="number"
+                                                        :placeholder="nestedField.placeholder"
+                                                        class="w-full"
+                                                        :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                    />
+
+                                                    <Textarea
+                                                        v-else-if="nestedField.type === 'textarea'"
+                                                        :id="nestedField.name"
+                                                        v-model="formData[nestedField.name]"
+                                                        :placeholder="nestedField.placeholder"
+                                                        rows="4"
+                                                        class="w-full"
+                                                        :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                    />
+
+                                                    <Dropdown
+                                                        v-else-if="nestedField.type === 'select'"
+                                                        :id="nestedField.name"
+                                                        v-model="formData[nestedField.name]"
+                                                        :options="nestedField.options"
+                                                        :placeholder="nestedField.placeholder || 'Select an option'"
+                                                        class="w-full"
+                                                        :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                    />
+
+                                                    <!-- Help text for nested field -->
+                                                    <small v-if="nestedField.help_text" class="text-gray-500 dark:text-gray-400">
+                                                        {{ nestedField.help_text }}
+                                                    </small>
+
+                                                    <!-- Error message for nested field -->
+                                                    <small v-if="errors[nestedField.name]" class="p-error block">
+                                                        {{ errors[nestedField.name] }}
+                                                    </small>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Column layouts (2-columns, 3-columns, 4-columns, grid-layout) -->
+                            <template v-else-if="field.type === '2-columns' || field.type === '3-columns' || field.type === '4-columns' || field.type === 'grid-layout'">
+                                <div>
+                                    <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                        {{ field.label }}
+                                    </label>
+                                    <div
+                                        class="grid"
+                                        :style="{
+                                            gridTemplateColumns: `repeat(${field.metadata?.columns || 2}, 1fr)`,
+                                            gap: `${field.metadata?.gap || 16}px`
+                                        }"
+                                    >
+                                        <div
+                                            v-for="colIdx in (field.metadata?.columns || 2)"
+                                            :key="colIdx"
+                                            class="space-y-4"
+                                        >
+                                            <!-- Render fields for this column -->
+                                            <div
+                                                v-for="nestedField in getColumnFieldsPublic(field, colIdx - 1)"
+                                                :key="nestedField.tempId"
+                                                class="space-y-2"
+                                            >
+                                                <label
+                                                    :for="nestedField.name"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                                >
+                                                    {{ nestedField.label }}
+                                                    <span v-if="nestedField.is_required" class="text-red-500">*</span>
+                                                </label>
+
+                                                <!-- Render field inputs -->
+                                                <InputText
+                                                    v-if="nestedField.type === 'text'"
+                                                    :id="nestedField.name"
+                                                    v-model="formData[nestedField.name]"
+                                                    :placeholder="nestedField.placeholder"
+                                                    class="w-full"
+                                                    :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                />
+
+                                                <InputText
+                                                    v-else-if="nestedField.type === 'email'"
+                                                    :id="nestedField.name"
+                                                    v-model="formData[nestedField.name]"
+                                                    type="email"
+                                                    :placeholder="nestedField.placeholder"
+                                                    class="w-full"
+                                                    :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                />
+
+                                                <InputText
+                                                    v-else-if="nestedField.type === 'number'"
+                                                    :id="nestedField.name"
+                                                    v-model="formData[nestedField.name]"
+                                                    type="number"
+                                                    :placeholder="nestedField.placeholder"
+                                                    class="w-full"
+                                                    :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                />
+
+                                                <Textarea
+                                                    v-else-if="nestedField.type === 'textarea'"
+                                                    :id="nestedField.name"
+                                                    v-model="formData[nestedField.name]"
+                                                    :placeholder="nestedField.placeholder"
+                                                    rows="4"
+                                                    class="w-full"
+                                                    :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                />
+
+                                                <Dropdown
+                                                    v-else-if="nestedField.type === 'select'"
+                                                    :id="nestedField.name"
+                                                    v-model="formData[nestedField.name]"
+                                                    :options="nestedField.options"
+                                                    :placeholder="nestedField.placeholder || 'Select an option'"
+                                                    class="w-full"
+                                                    :class="{ 'p-invalid': errors[nestedField.name] }"
+                                                />
+
+                                                <!-- Help text -->
+                                                <small v-if="nestedField.help_text" class="text-gray-500 dark:text-gray-400">
+                                                    {{ nestedField.help_text }}
+                                                </small>
+
+                                                <!-- Error message -->
+                                                <small v-if="errors[nestedField.name]" class="p-error block">
+                                                    {{ errors[nestedField.name] }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Regular fields -->
+                            <template v-else>
+                                <label
+                                    :for="field.name"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                >
+                                    {{ field.label }}
+                                    <span v-if="field.is_required" class="text-red-500">*</span>
+                                </label></template>
 
                             <!-- Text Input -->
                             <InputText
@@ -353,12 +649,68 @@ const errors = ref({});
 const showExportDialog = ref(false);
 const exportType = ref('vue');
 
+// Helper function to get fields for a specific column
+const getColumnFieldsPublic = (field, columnIndex) => {
+    if (!field.metadata?.children) {
+        return [];
+    }
+    return field.metadata.children.filter(child => child.columnIndex === columnIndex);
+};
+
+// Helper function to get fields for nested column layouts inside containers
+const getNestedColumnFields = (nestedField, columnIndex) => {
+    // For nested column layouts, check if children is stored directly or in metadata
+    const children = nestedField.children || nestedField.metadata?.children;
+    if (!children) {
+        return [];
+    }
+    return children.filter(child => child.columnIndex === columnIndex);
+};
+
 // Initialize form data with checkbox and multiselect arrays
 props.form.fields.forEach(field => {
-    if (field.type === 'checkbox' || field.type === 'multiselect') {
-        formData.value[field.name] = [];
-    } else {
-        formData.value[field.name] = field.default_value || null;
+    // Initialize nested fields inside containers
+    if (field.type === 'container' && field.metadata?.containerChildren) {
+        field.metadata.containerChildren.forEach(nestedField => {
+            // Check if nested field is a column layout
+            if (nestedField.type === '2-columns' || nestedField.type === '3-columns' || nestedField.type === '4-columns' || nestedField.type === 'grid-layout') {
+                // Initialize fields inside the column layout
+                const children = nestedField.children || nestedField.metadata?.children;
+                if (children) {
+                    children.forEach(colField => {
+                        if (colField.type === 'checkbox' || colField.type === 'multiselect') {
+                            formData.value[colField.name] = [];
+                        } else {
+                            formData.value[colField.name] = colField.default_value || null;
+                        }
+                    });
+                }
+            }
+            // Regular nested field
+            else if (nestedField.type === 'checkbox' || nestedField.type === 'multiselect') {
+                formData.value[nestedField.name] = [];
+            } else {
+                formData.value[nestedField.name] = nestedField.default_value || null;
+            }
+        });
+    }
+    // Initialize nested fields inside column layouts
+    else if ((field.type === '2-columns' || field.type === '3-columns' || field.type === '4-columns' || field.type === 'grid-layout') && field.metadata?.children) {
+        field.metadata.children.forEach(nestedField => {
+            if (nestedField.type === 'checkbox' || nestedField.type === 'multiselect') {
+                formData.value[nestedField.name] = [];
+            } else {
+                formData.value[nestedField.name] = nestedField.default_value || null;
+            }
+        });
+    }
+    // Initialize regular fields
+    else if (field.name) {
+        if (field.type === 'checkbox' || field.type === 'multiselect') {
+            formData.value[field.name] = [];
+        } else {
+            formData.value[field.name] = field.default_value || null;
+        }
     }
 });
 
@@ -643,7 +995,7 @@ const generateHTMLCode = () => {
         html += `  </div>\n\n`;
     });
 
-    html += `  <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">\n`;
+    html += `  <button type="submit" class="w-full bg-primary-500 text-white px-4 py-2 rounded-md hover:bg-primary-600">\n`;
     html += `    Submit\n`;
     html += `  </button>\n`;
     html += `</form>`;
@@ -798,7 +1150,7 @@ const generateBladeCode = () => {
         blade += `  </div>\n\n`;
     });
 
-    blade += `  <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">\n`;
+    blade += `  <button type="submit" class="w-full bg-primary-500 text-white px-4 py-2 rounded-md hover:bg-primary-600">\n`;
     blade += `    Submit\n`;
     blade += `  </button>\n`;
     blade += `</form>`;

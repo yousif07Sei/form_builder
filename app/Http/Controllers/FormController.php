@@ -91,13 +91,14 @@ class FormController extends Controller
             'fields.*.id' => 'nullable|exists:form_fields,id',
             'fields.*.type' => 'required|string',
             'fields.*.label' => 'required|string',
-            'fields.*.name' => 'required|string',
+            'fields.*.name' => 'nullable|string',
             'fields.*.placeholder' => 'nullable|string',
             'fields.*.default_value' => 'nullable|string',
             'fields.*.validation_rules' => 'nullable|array',
             'fields.*.options' => 'nullable|array',
-            'fields.*.is_required' => 'boolean',
+            'fields.*.is_required' => 'nullable|boolean',
             'fields.*.help_text' => 'nullable|string',
+            'fields.*.metadata' => 'nullable|array',
         ]);
 
         $form->update([

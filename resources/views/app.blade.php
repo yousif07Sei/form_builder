@@ -10,7 +10,7 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
         <!-- Scripts -->
-        @routes
+        @routes <!-- This is the @routes showing the top left corner of the page -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @inertiaHead
     </head>

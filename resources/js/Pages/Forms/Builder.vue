@@ -41,73 +41,17 @@
 
         <div class="flex h-[calc(100vh-73px)]">
             <!-- Left Sidebar - Field Palette -->
-            <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-                <TabView v-model:activeIndex="activeTab" class="field-tabs">
-                    <!-- Fields Tab -->
-                    <TabPanel header="Fields">
-                        <div class="space-y-2 p-4">
-                            <div
-                                v-for="fieldType in fieldTypes"
-                                :key="fieldType.type"
-                                class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-move hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                draggable="true"
-                                @dragstart="onDragStart(fieldType)"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <i :class="fieldType.icon" class="text-gray-600 dark:text-gray-400"></i>
-                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ fieldType.label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </TabPanel>
-
-                    <!-- Static HTML Tab -->
-                    <TabPanel header="Static">
-                        <div class="space-y-2 p-4">
-                            <div
-                                v-for="fieldType in staticHtmlFields"
-                                :key="fieldType.type"
-                                class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-move hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                draggable="true"
-                                @dragstart="onDragStart(fieldType)"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <i :class="fieldType.icon" class="text-gray-600 dark:text-gray-400"></i>
-                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ fieldType.label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </TabPanel>
-
-                    <!-- Structure Tab -->
-                    <TabPanel header="Structure">
-                        <div class="space-y-2 p-4">
-                            <div
-                                v-for="fieldType in structureFields"
-                                :key="fieldType.type"
-                                class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-move hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                draggable="true"
-                                @dragstart="onDragStart(fieldType)"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <i :class="fieldType.icon" class="text-gray-600 dark:text-gray-400"></i>
-                                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ fieldType.label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </TabPanel>
-                </TabView>
-            </div>
+            <FieldPalette @dragstart="handleFieldDragStart" />
 
             <!-- Center - Form Builder Canvas -->
-            <div class="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+            <div class="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
                 <div class="max-w-3xl mx-auto py-12">
                     <!-- Form Header -->
-                    <div class="text-center mb-8" @click="openFormSettings">
-                        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                             {{ formData.title }}
                         </h1>
-                        <p v-if="formData.description" class="text-lg text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <p v-if="formData.description" class="text-lg text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                             {{ formData.description }}
                         </p>
                     </div>
@@ -118,11 +62,10 @@
                             <!-- Drop Zone -->
                             <div
                                 class="min-h-[300px]"
-                                :class="{ 'bg-blue-50 dark:bg-blue-900/20': isDragging }"
+                                :class="{ 'bg-primary-50 dark:bg-primary-900/20': isDragging }"
                                 @dragover.prevent="isDragging = true"
                                 @dragleave="isDragging = false"
                                 @drop.prevent="onDrop"
-                                @click="openFormSettings"
                             >
                                 <div v-if="fields.length === 0" class="text-center py-12">
                                     <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
@@ -205,7 +148,7 @@
                                                     <Button :label="element.content" type="submit" />
                                                 </template>
                                                 <template v-else-if="element.type === 'link'">
-                                                    <a :href="element.url" target="_blank" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                                                    <a :href="element.url" target="_blank" class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 underline">
                                                         {{ element.content }}
                                                     </a>
                                                 </template>
@@ -220,43 +163,285 @@
                                                 <!-- Structure Fields -->
                                                 <template v-else-if="element.type === 'container'">
                                                     <div
-                                                        class="rounded min-h-[100px]"
+                                                        class="rounded min-h-[100px] bg-gray-50 dark:bg-gray-800"
                                                         :class="{
-                                                            'border border-gray-300 dark:border-gray-600': element.containerBorder
+                                                            'border-2 border-dashed border-primary-300 dark:border-primary-600': element.containerBorder
                                                         }"
                                                         :style="{ padding: (element.containerPadding || 16) + 'px' }"
+                                                        @dragover.prevent
+                                                        @drop="onNestedDrop($event, element)"
                                                     >
-                                                        <p class="text-gray-600 dark:text-gray-400">
-                                                            {{ element.containerContent }}
-                                                        </p>
+                                                        <!-- Container Description -->
+                                                        <div v-if="element.containerDescription" class="mb-3 p-2 bg-primary-50 dark:bg-primary-900/20 rounded text-sm text-gray-600 dark:text-gray-400">
+                                                            <i class="pi pi-info-circle mr-1"></i>
+                                                            {{ element.containerDescription }}
+                                                        </div>
+
+                                                        <div v-if="!element.containerChildren || element.containerChildren.length === 0" class="text-center py-8">
+                                                            <i class="pi pi-inbox text-3xl text-gray-400 mb-2"></i>
+                                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                                Drop fields here
+                                                            </p>
+                                                        </div>
+                                                        <div v-else class="space-y-4">
+                                                            <div
+                                                                v-for="(childField, childIdx) in element.containerChildren"
+                                                                :key="childField.tempId || childField.id"
+                                                                class="relative group"
+                                                                :class="{ 'ring-2 ring-blue-500 rounded-lg p-2 -m-2': isNestedFieldSelected(index, childIdx) }"
+                                                                @click.stop="selectField(index, { parentIndex: index, childIndex: childIdx })"
+                                                            >
+                                                                <!-- Delete button for nested field -->
+                                                                <div class="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                                    <Button
+                                                                        icon="pi pi-trash"
+                                                                        severity="danger"
+                                                                        text
+                                                                        rounded
+                                                                        size="small"
+                                                                        @click.stop="element.containerChildren.splice(childIdx, 1)"
+                                                                    />
+                                                                </div>
+
+                                                                <!-- Render column layouts (if nested) -->
+                                                                <template v-if="childField.type === '2-columns' || childField.type === '3-columns' || childField.type === '4-columns' || childField.type === 'grid-layout'">
+                                                                    <div
+                                                                        class="grid rounded-lg p-3 bg-gradient-to-br from-primary-50/50 to-primary-100/50 dark:from-gray-800/50 dark:to-gray-700/50 border-2 border-dashed border-primary-200 dark:border-primary-800"
+                                                                        :style="{
+                                                                            gridTemplateColumns: `repeat(${childField.columns || 2}, 1fr)`,
+                                                                            gap: `${childField.gap || 16}px`
+                                                                        }"
+                                                                    >
+                                                                        <div
+                                                                            v-for="(column, colIdx) in (childField.columns || 2)"
+                                                                            :key="colIdx"
+                                                                            class="column-drop-zone border-2 border-dashed rounded-lg p-4 min-h-[200px] transition-all duration-200 bg-white dark:bg-gray-900"
+                                                                            :class="{
+                                                                                'border-primary-400 dark:border-primary-600': !getColumnFields(childField, colIdx) || getColumnFields(childField, colIdx).length === 0,
+                                                                                'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800': getColumnFields(childField, colIdx) && getColumnFields(childField, colIdx).length > 0
+                                                                            }"
+                                                                            @dragover.prevent="$event.currentTarget.classList.add('dragover-highlight')"
+                                                                            @dragleave="$event.currentTarget.classList.remove('dragover-highlight')"
+                                                                            @drop="onColumnDrop($event, childField, colIdx); $event.currentTarget.classList.remove('dragover-highlight')"
+                                                                        >
+                                                                            <!-- Column header badge -->
+                                                                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                                                                <span class="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wide">
+                                                                                    Column {{ colIdx + 1 }}
+                                                                                </span>
+                                                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    {{ (getColumnFields(childField, colIdx) || []).length }}
+                                                                                    {{ (getColumnFields(childField, colIdx) || []).length === 1 ? 'field' : 'fields' }}
+                                                                                </span>
+                                                                            </div>
+
+                                                                            <!-- Empty state -->
+                                                                            <div v-if="!getColumnFields(childField, colIdx) || getColumnFields(childField, colIdx).length === 0" class="flex flex-col items-center justify-center h-[calc(100%-2.5rem)] py-8">
+                                                                                <div class="text-center">
+                                                                                    <div class="mb-3 w-12 h-12 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                                                                        <i class="pi pi-plus text-xl text-primary-500 dark:text-primary-400"></i>
+                                                                                    </div>
+                                                                                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Drop fields here</p>
+                                                                                    <p class="text-xs text-gray-400 dark:text-gray-500">Drag from the sidebar</p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <!-- Fields list -->
+                                                                            <div v-else class="space-y-3">
+                                                                                <div
+                                                                                    v-for="(colChildField, colChildIdx) in getColumnFields(childField, colIdx)"
+                                                                                    :key="colChildField.tempId || colChildField.id"
+                                                                                    class="relative group bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 transition-all"
+                                                                                    :class="{ 'ring-2 ring-blue-500': isNestedFieldSelected(index, childIdx, colIdx, colChildIdx) }"
+                                                                                    @click.stop="selectField(index, { parentIndex: index, childIndex: childIdx, colIdx: colIdx, colChildIdx: colChildIdx })"
+                                                                                >
+                                                                                    <!-- Delete button -->
+                                                                                    <div class="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                                                        <Button
+                                                                                            icon="pi pi-trash"
+                                                                                            severity="danger"
+                                                                                            text
+                                                                                            rounded
+                                                                                            size="small"
+                                                                                            @click.stop="removeColumnField(childField, colIdx, colChildIdx)"
+                                                                                        />
+                                                                                    </div>
+
+                                                                                    <!-- Render the field -->
+                                                                                    <div class="space-y-2">
+                                                                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                                            {{ colChildField.label }}
+                                                                                            <span v-if="colChildField.is_required" class="text-red-500">*</span>
+                                                                                        </label>
+                                                                                        <component
+                                                                                            :is="getFieldComponent(colChildField.type)"
+                                                                                            v-bind="getFieldProps(colChildField)"
+                                                                                            disabled
+                                                                                        />
+                                                                                        <small v-if="colChildField.help_text" class="text-gray-500 dark:text-gray-400 block">
+                                                                                            {{ colChildField.help_text }}
+                                                                                        </small>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+
+                                                                <!-- Render regular fields -->
+                                                                <template v-else>
+                                                                    <div class="space-y-2">
+                                                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                            {{ childField.label }}
+                                                                            <span v-if="childField.is_required" class="text-red-500">*</span>
+                                                                        </label>
+                                                                        <component
+                                                                            :is="getFieldComponent(childField.type)"
+                                                                            v-bind="getFieldProps(childField)"
+                                                                            disabled
+                                                                        />
+                                                                        <small v-if="childField.help_text" class="text-gray-500 dark:text-gray-400 block">
+                                                                            {{ childField.help_text }}
+                                                                        </small>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </template>
                                                 <template v-else-if="element.type === 'tabs-container'">
                                                     <TabView class="structure-tabs">
                                                         <TabPanel v-for="(tab, tabIdx) in element.tabs" :key="tabIdx" :header="tab.title">
-                                                            <div class="p-4 border border-gray-200 dark:border-gray-700 rounded min-h-[100px]">
-                                                                <p v-if="!tab.fields || tab.fields.length === 0" class="text-sm text-gray-500 dark:text-gray-400 text-center">
-                                                                    Tab content will appear here
-                                                                </p>
-                                                                <!-- Could add nested fields here later -->
+                                                            <div
+                                                                class="p-4 border-2 border-dashed border-primary-300 dark:border-primary-600 rounded min-h-[100px] bg-gray-50 dark:bg-gray-800"
+                                                                @dragover.prevent
+                                                                @drop="onNestedDrop($event, element, tabIdx)"
+                                                            >
+                                                                <div v-if="!tab.fields || tab.fields.length === 0" class="text-center py-8">
+                                                                    <i class="pi pi-inbox text-3xl text-gray-400 mb-2"></i>
+                                                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                                        Drop fields here
+                                                                    </p>
+                                                                </div>
+                                                                <div v-else class="space-y-4">
+                                                                    <div
+                                                                        v-for="(childField, childIdx) in tab.fields"
+                                                                        :key="childField.tempId || childField.id"
+                                                                        class="relative group"
+                                                                    >
+                                                                        <!-- Delete button for nested field -->
+                                                                        <div class="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                                            <Button
+                                                                                icon="pi pi-trash"
+                                                                                severity="danger"
+                                                                                text
+                                                                                rounded
+                                                                                size="small"
+                                                                                @click.stop="tab.fields.splice(childIdx, 1)"
+                                                                            />
+                                                                        </div>
+
+                                                                        <!-- Render the actual field -->
+                                                                        <div class="space-y-2">
+                                                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                                {{ childField.label }}
+                                                                                <span v-if="childField.is_required" class="text-red-500">*</span>
+                                                                            </label>
+                                                                            <component
+                                                                                :is="getFieldComponent(childField.type)"
+                                                                                v-bind="getFieldProps(childField)"
+                                                                                disabled
+                                                                            />
+                                                                            <small v-if="childField.help_text" class="text-gray-500 dark:text-gray-400 block">
+                                                                                {{ childField.help_text }}
+                                                                            </small>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </TabPanel>
                                                     </TabView>
                                                 </template>
                                                 <template v-else-if="element.type === '2-columns' || element.type === '3-columns' || element.type === '4-columns' || element.type === 'grid-layout'">
                                                     <div
-                                                        class="grid border border-gray-200 dark:border-gray-700 rounded p-4 min-h-[100px]"
+                                                        class="grid rounded-lg p-3 bg-gradient-to-br from-primary-50/50 to-primary-100/50 dark:from-gray-800/50 dark:to-gray-700/50 border-2 border-dashed border-primary-200 dark:border-primary-800"
                                                         :style="{
                                                             gridTemplateColumns: `repeat(${element.columns || 2}, 1fr)`,
-                                                            gap: `${element.gap || 4}px`
+                                                            gap: `${element.gap || 16}px`
                                                         }"
                                                     >
                                                         <div
-                                                            v-for="col in (element.columns || 2)"
-                                                            :key="col"
-                                                            class="border border-dashed border-gray-300 dark:border-gray-600 rounded p-4 min-h-[80px] flex items-center justify-center"
+                                                            v-for="(column, colIdx) in (element.columns || 2)"
+                                                            :key="colIdx"
+                                                            class="column-drop-zone border-2 border-dashed rounded-lg p-4 min-h-[200px] transition-all duration-200 bg-white dark:bg-gray-900"
+                                                            :class="{
+                                                                'border-primary-400 dark:border-primary-600': !getColumnFields(element, colIdx) || getColumnFields(element, colIdx).length === 0,
+                                                                'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800': getColumnFields(element, colIdx) && getColumnFields(element, colIdx).length > 0
+                                                            }"
+                                                            @dragover.prevent="$event.currentTarget.classList.add('dragover-highlight')"
+                                                            @dragleave="$event.currentTarget.classList.remove('dragover-highlight')"
+                                                            @drop="onColumnDrop($event, element, colIdx); $event.currentTarget.classList.remove('dragover-highlight')"
                                                         >
-                                                            <span class="text-sm text-gray-500 dark:text-gray-400">Column {{ col }}</span>
+                                                            <!-- Column header badge -->
+                                                            <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                                                <span class="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wide">
+                                                                    Column {{ colIdx + 1 }}
+                                                                </span>
+                                                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                                    {{ (getColumnFields(element, colIdx) || []).length }}
+                                                                    {{ (getColumnFields(element, colIdx) || []).length === 1 ? 'field' : 'fields' }}
+                                                                </span>
+                                                            </div>
+
+                                                            <!-- Empty state -->
+                                                            <div v-if="!getColumnFields(element, colIdx) || getColumnFields(element, colIdx).length === 0" class="flex flex-col items-center justify-center h-[calc(100%-2.5rem)] py-8">
+                                                                <div class="text-center">
+                                                                    <div class="mb-3 w-12 h-12 mx-auto rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                                                        <i class="pi pi-plus text-xl text-primary-500 dark:text-primary-400"></i>
+                                                                    </div>
+                                                                    <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Drop fields here</p>
+                                                                    <p class="text-xs text-gray-400 dark:text-gray-500">Drag from the sidebar</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Fields list -->
+                                                            <div v-else class="space-y-3">
+                                                                <div
+                                                                    v-for="(childField, childIdx) in getColumnFields(element, colIdx)"
+                                                                    :key="childField.tempId || childField.id"
+                                                                    class="relative group bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 transition-all"
+                                                                    :class="{ 'ring-2 ring-blue-500': isNestedFieldSelected(index, undefined, colIdx, childIdx) }"
+                                                                    @click.stop="selectField(index, { parentIndex: index, colIdx: colIdx, colChildIdx: childIdx })"
+                                                                >
+                                                                    <!-- Delete button for nested field -->
+                                                                    <div class="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                                        <Button
+                                                                            icon="pi pi-trash"
+                                                                            severity="danger"
+                                                                            text
+                                                                            rounded
+                                                                            size="small"
+                                                                            @click.stop="removeColumnField(element, colIdx, childIdx)"
+                                                                        />
+                                                                    </div>
+
+                                                                    <!-- Render the actual field -->
+                                                                    <div class="space-y-2">
+                                                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                            {{ childField.label }}
+                                                                            <span v-if="childField.is_required" class="text-red-500">*</span>
+                                                                        </label>
+                                                                        <component
+                                                                            :is="getFieldComponent(childField.type)"
+                                                                            v-bind="getFieldProps(childField)"
+                                                                            disabled
+                                                                        />
+                                                                        <small v-if="childField.help_text" class="text-gray-500 dark:text-gray-400 block">
+                                                                            {{ childField.help_text }}
+                                                                        </small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -317,85 +502,104 @@
 
             <!-- Right Sidebar - Settings Panel -->
             <div
-                v-if="selectedFieldIndex !== null || showFormSettings"
+                v-if="selectedFieldIndex !== null || selectedNestedPath !== null"
                 class="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto"
             >
                 <div class="flex items-center justify-between p-4 pb-0">
-                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">
-                        {{ showFormSettings ? 'Form Settings' : 'Field Settings' }}
-                    </h3>
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                            {{ selectedField ? selectedField.label : 'Settings' }}
+                        </h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {{ selectedField ? selectedField.type : '' }}
+                        </p>
+                    </div>
                     <Button
                         icon="pi pi-times"
                         text
                         rounded
-                        @click="selectedFieldIndex = null; showFormSettings = false"
+                        @click="selectedFieldIndex = null; selectedNestedPath = null"
                     />
                 </div>
 
-                <!-- Form Settings -->
-                <div v-if="showFormSettings" class="p-4">
-                    <TabView v-model:activeIndex="settingsTab" class="settings-tabs">
-                        <!-- Form Settings Tab -->
-                        <TabPanel header="Settings">
-                            <div class="space-y-4 p-4">
+                <!-- Field Settings Content -->
+                <div v-if="selectedField" class="p-4 space-y-4">
+                    <!-- Properties Accordion -->
+                    <Accordion>
+                        <AccordionTab header="Properties">
+                            <div class="space-y-4">
+                                <!-- Field Name/Label -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Form Title
+                                        Name *
                                     </label>
-                                    <InputText v-model="formData.title" class="w-full" />
+                                    <InputText v-model="selectedField.label" class="w-full" />
                                 </div>
-                                <div>
+
+                                <!-- Placeholder for regular fields -->
+                                <div v-if="selectedField.placeholder !== null && selectedField.placeholder !== undefined">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Description
+                                        Placeholder
                                     </label>
-                                    <Textarea v-model="formData.description" rows="2" class="w-full" />
+                                    <InputText v-model="selectedField.placeholder" class="w-full" />
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <InputSwitch v-model="formData.is_active" inputId="is_active" />
-                                    <label for="is_active" class="text-sm text-gray-700 dark:text-gray-300">
-                                        Form is active
-                                    </label>
+
+                                <!-- Form Settings -->
+                                <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Form Settings</h4>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Form Title
+                                            </label>
+                                            <InputText v-model="formData.title" class="w-full" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Description
+                                            </label>
+                                            <Textarea v-model="formData.description" rows="2" class="w-full" />
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <InputSwitch v-model="formData.is_active" inputId="is_active" />
+                                            <label for="is_active" class="text-sm text-gray-700 dark:text-gray-300">
+                                                Form is active
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </TabPanel>
+                        </AccordionTab>
+                    </Accordion>
 
-                        <!-- Theme Tab -->
-                        <TabPanel header="Theme">
-                            <div class="space-y-4 p-4">
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Theme customization options will be available here.
-                                </p>
-                            </div>
-                        </TabPanel>
-                    </TabView>
-                </div>
-
-                <!-- Field Settings -->
-                <TabView v-else-if="selectedFieldIndex !== null" v-model:activeIndex="settingsTab" class="settings-tabs">
-                    <!-- Field Settings Tab -->
-                    <TabPanel header="Field">
-                        <div v-if="selectedField" class="space-y-4 p-4">
+                    <!-- Field-Specific Settings -->
+                    <div class="space-y-4">
                     <!-- Settings for Structure Fields -->
                     <template v-if="['container', 'tabs-container', '2-columns', '3-columns', '4-columns', 'grid-layout', 'table'].includes(selectedField.type)">
-                        <!-- Label (for identification) -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Label *
-                            </label>
-                            <InputText v-model="selectedField.label" class="w-full" />
-                        </div>
 
                         <!-- Container Settings -->
                         <template v-if="selectedField.type === 'container'">
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded">
+                                <i class="pi pi-info-circle mr-2"></i>
+                                Drag and drop fields from the left sidebar into this container
+                            </div>
+                            <div
+                                v-if="selectedField.containerChildren && selectedField.containerChildren.length > 0"
+                                class="mb-4"
+                            >
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Contains {{ selectedField.containerChildren.length }} field(s)
+                                </label>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Content
+                                    Description
                                 </label>
                                 <Textarea
-                                    v-model="selectedField.containerContent"
-                                    rows="4"
+                                    v-model="selectedField.containerDescription"
+                                    rows="2"
+                                    placeholder="Optional description or instructions for this container"
                                     class="w-full"
-                                    placeholder="Container content..."
                                 />
                             </div>
                             <div>
@@ -741,19 +945,8 @@
                             </div>
                         </div>
                     </template>
-                        </div>
-                    </TabPanel>
-
-                    <!-- Theme Tab -->
-                    <TabPanel header="Theme">
-                        <div class="space-y-4 p-4">
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Theme customization options will be available here.
-                            </p>
-                            <!-- Add theme settings here -->
-                        </div>
-                    </TabPanel>
-                </TabView>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -833,6 +1026,11 @@ import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
+import Accordion from 'primevue/accordion';
+import AccordionTab from 'primevue/accordiontab';
+import FieldPalette from '@/Components/FieldPalette.vue';
+import { getDefaultFieldProperties } from '@/utils/fieldTypes';
+import { getFieldComponent, getFieldProps } from '@/utils/fieldHelpers';
 
 const props = defineProps({
     form: Object
@@ -844,9 +1042,63 @@ const formData = ref({
     is_active: props.form.is_active,
 });
 
-const fields = ref(props.form.fields || []);
+// Recursively process nested fields to ensure they have tempId
+const processNestedFields = (field) => {
+    const processed = {
+        ...field,
+        tempId: field.tempId || field.id || Date.now(),
+    };
+
+    // Process containerChildren and recursively handle nested structure fields
+    if (processed.containerChildren && Array.isArray(processed.containerChildren)) {
+        processed.containerChildren = processed.containerChildren.map(processNestedFields);
+    }
+
+    // Process tabs with nested fields
+    if (processed.tabs && Array.isArray(processed.tabs)) {
+        processed.tabs = processed.tabs.map(tab => ({
+            ...tab,
+            fields: (tab.fields || []).map(processNestedFields),
+        }));
+    }
+
+    // Initialize children array for column layouts if not present
+    if (['2-columns', '3-columns', '4-columns', 'grid-layout'].includes(processed.type)) {
+        if (!processed.children) {
+            processed.children = [];
+        }
+    }
+
+    // Process grid/column children
+    if (processed.children && Array.isArray(processed.children)) {
+        processed.children = processed.children.map(processNestedFields);
+    }
+
+    return processed;
+};
+
+// Merge metadata back into fields for UI
+const loadedFields = (props.form.fields || []).map(field => {
+    let mergedField = field;
+
+    if (field.metadata) {
+        mergedField = {
+            ...field,
+            ...field.metadata,
+            // Keep the database id but also set tempId for UI compatibility
+            tempId: field.id,
+        };
+    } else {
+        mergedField = { ...field, tempId: field.id };
+    }
+
+    // Process any nested fields recursively
+    return processNestedFields(mergedField);
+});
+
+const fields = ref(loadedFields);
 const selectedFieldIndex = ref(null);
-const showFormSettings = ref(false);
+const selectedNestedPath = ref(null); // { parentIndex, childIndex, columnIndex } for nested fields
 const isDragging = ref(false);
 const saving = ref(false);
 const showExportDialog = ref(false);
@@ -854,139 +1106,78 @@ const exportType = ref('vue');
 const activeTab = ref(0);
 const settingsTab = ref(0);
 
-const fieldTypes = [
-    { type: 'text', label: 'Text Input', icon: 'pi pi-align-left' },
-    { type: 'email', label: 'Email', icon: 'pi pi-at' },
-    { type: 'number', label: 'Number', icon: 'pi pi-hashtag' },
-    { type: 'tel', label: 'Phone Number', icon: 'pi pi-phone' },
-    { type: 'url', label: 'URL', icon: 'pi pi-link' },
-    { type: 'password', label: 'Password', icon: 'pi pi-lock' },
-    { type: 'location', label: 'Location', icon: 'pi pi-map-marker' },
-    { type: 'textarea', label: 'Text Area', icon: 'pi pi-align-justify' },
-    { type: 'select', label: 'Dropdown', icon: 'pi pi-chevron-down' },
-    { type: 'multiselect', label: 'Multi Select', icon: 'pi pi-list' },
-    { type: 'radio', label: 'Radio Buttons', icon: 'pi pi-circle' },
-    { type: 'checkbox', label: 'Checkboxes', icon: 'pi pi-check-square' },
-    { type: 'date', label: 'Date Picker', icon: 'pi pi-calendar' },
-    { type: 'time', label: 'Time Picker', icon: 'pi pi-clock' },
-    { type: 'datetime', label: 'Date Time Picker', icon: 'pi pi-calendar-clock' },
-    { type: 'file', label: 'File Upload', icon: 'pi pi-file' },
-    { type: 'image', label: 'Image Upload', icon: 'pi pi-image' },
-];
-
-const staticHtmlFields = [
-    { type: 'heading', label: 'Heading', icon: 'pi pi-bookmark' },
-    { type: 'paragraph', label: 'Paragraph', icon: 'pi pi-align-left' },
-    { type: 'divider', label: 'Divider', icon: 'pi pi-minus' },
-    { type: 'spacer', label: 'Spacer', icon: 'pi pi-arrows-v' },
-    { type: 'html', label: 'Custom HTML', icon: 'pi pi-code' },
-    { type: 'button-primary', label: 'Primary Button', icon: 'pi pi-check-circle' },
-    { type: 'button-secondary', label: 'Secondary Button', icon: 'pi pi-circle' },
-    { type: 'button-danger', label: 'Danger Button', icon: 'pi pi-times-circle' },
-    { type: 'button-submit', label: 'Submit Button', icon: 'pi pi-send' },
-    { type: 'link', label: 'Link', icon: 'pi pi-external-link' },
-    { type: 'quote', label: 'Quote', icon: 'pi pi-comment' },
-    { type: 'image', label: 'Image', icon: 'pi pi-image' },
-];
-
-const structureFields = [
-    { type: 'container', label: 'Container', icon: 'pi pi-box' },
-    { type: 'tabs-container', label: 'Tabs Container', icon: 'pi pi-window-maximize' },
-    { type: '2-columns', label: '2 Columns', icon: 'pi pi-table' },
-    { type: '3-columns', label: '3 Columns', icon: 'pi pi-table' },
-    { type: '4-columns', label: '4 Columns', icon: 'pi pi-table' },
-    { type: 'grid-layout', label: 'Grid Layout', icon: 'pi pi-th-large' },
-    { type: 'table', label: 'Table', icon: 'pi pi-table' },
-];
-
 const selectedField = computed(() => {
+    // If nested path is set, get nested field
+    if (selectedNestedPath.value !== null) {
+        const { parentIndex, childIndex, colIdx, colChildIdx } = selectedNestedPath.value;
+        const parent = fields.value[parentIndex];
+
+        if (!parent) return null;
+
+        // Handle fields inside column layouts that are inside containers
+        if (colIdx !== undefined && colChildIdx !== undefined && childIndex !== undefined) {
+            const containerChild = parent.containerChildren?.[childIndex];
+            if (containerChild?.children) {
+                const columnFields = containerChild.children.filter(f => f.columnIndex === colIdx);
+                return columnFields[colChildIdx];
+            }
+        }
+
+        // Handle fields inside column layouts (top-level or container child)
+        if (colIdx !== undefined && colChildIdx !== undefined && childIndex === undefined) {
+            if (parent.children) {
+                const columnFields = parent.children.filter(f => f.columnIndex === colIdx);
+                return columnFields[colChildIdx];
+            }
+        }
+
+        // Handle container children (non-column fields)
+        if (parent.containerChildren && childIndex !== undefined) {
+            return parent.containerChildren[childIndex];
+        }
+    }
+
+    // Otherwise get top-level field
     return selectedFieldIndex.value !== null ? fields.value[selectedFieldIndex.value] : null;
 });
 
-const onDragStart = (fieldType) => {
-    // Store field type in drag data
-    event.dataTransfer.effectAllowed = 'copy';
-    event.dataTransfer.setData('fieldType', JSON.stringify(fieldType));
+// Handle field drag start from FieldPalette component
+const handleFieldDragStart = (fieldType) => {
+    // Drag data is already set by FieldPalette component
+    // This is just for any additional logic if needed
 };
 
 const onDrop = (event) => {
     isDragging.value = false;
     const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
 
-    // Check if it's a static HTML field
-    const isStaticField = ['heading', 'paragraph', 'divider', 'spacer', 'html', 'button-primary', 'button-secondary', 'button-danger', 'button-submit', 'link', 'quote', 'image'].includes(fieldType.type);
-
-    // Check if it's a structure field
-    const isStructureField = ['container', 'tabs-container', '2-columns', '3-columns', '4-columns', 'grid-layout', 'table'].includes(fieldType.type);
-
-    const newField = {
-        tempId: Date.now(), // Use tempId for UI, not database id
-        type: fieldType.type,
-        label: fieldType.label,
-        name: (isStaticField || isStructureField) ? null : fieldType.type + '_' + Date.now(),
-        placeholder: (isStaticField || isStructureField) ? null : '',
-        default_value: (isStaticField || isStructureField) ? null : '',
-        validation_rules: {},
-        options: fieldType.type === 'select' || fieldType.type === 'multiselect' || fieldType.type === 'radio' || fieldType.type === 'checkbox'
-            ? ['Option 1', 'Option 2']
-            : null,
-        is_required: (isStaticField || isStructureField) ? false : false,
-        help_text: (isStaticField || isStructureField) ? null : '',
-        // Add content field for static HTML types
-        content: isStaticField ? (
-            fieldType.type === 'heading' ? 'Heading Text' :
-            fieldType.type === 'paragraph' ? 'Paragraph text goes here...' :
-            fieldType.type === 'html' ? '<div>Custom HTML</div>' :
-            fieldType.type === 'link' ? 'Link Text' :
-            fieldType.type === 'quote' ? 'Quote text goes here...' :
-            fieldType.type.startsWith('button-') ? fieldType.label :
-            ''
-        ) : null,
-        // Add URL for links
-        url: fieldType.type === 'link' ? 'https://example.com' : null,
-        // Add image source
-        imageSrc: fieldType.type === 'image' ? 'https://via.placeholder.com/400x200' : null,
-        imageAlt: fieldType.type === 'image' ? 'Image description' : null,
-        // Add size/height for spacer
-        height: fieldType.type === 'spacer' ? 20 : null,
-        // Add heading level
-        headingLevel: fieldType.type === 'heading' ? 'h2' : null,
-        // Add structure-specific properties
-        containerContent: fieldType.type === 'container' ? 'Container content here...' : null,
-        containerPadding: fieldType.type === 'container' ? 16 : null,
-        containerBorder: fieldType.type === 'container' ? true : null,
-        tabs: fieldType.type === 'tabs-container' ? [
-            { title: 'Tab 1', fields: [] },
-            { title: 'Tab 2', fields: [] }
-        ] : null,
-        columns: fieldType.type === 'grid-layout' ? 2 :
-                 fieldType.type === '2-columns' ? 2 :
-                 fieldType.type === '3-columns' ? 3 :
-                 fieldType.type === '4-columns' ? 4 : null,
-        gap: (fieldType.type === 'grid-layout' || fieldType.type === '2-columns' || fieldType.type === '3-columns' || fieldType.type === '4-columns') ? 16 : null,
-        children: (fieldType.type === 'grid-layout' || fieldType.type === '2-columns' || fieldType.type === '3-columns' || fieldType.type === '4-columns') ? [] : null,
-        rows: fieldType.type === 'table' ? 3 : null,
-        tableColumns: fieldType.type === 'table' ? 3 : null,
-        headers: fieldType.type === 'table' ? ['Header 1', 'Header 2', 'Header 3'] : null,
-        tableData: fieldType.type === 'table' ? [
-            ['Row 1 Col 1', 'Row 1 Col 2', 'Row 1 Col 3'],
-            ['Row 2 Col 1', 'Row 2 Col 2', 'Row 2 Col 3'],
-            ['Row 3 Col 1', 'Row 3 Col 2', 'Row 3 Col 3']
-        ] : null,
-    };
+    // Create new field with default properties
+    const newField = getDefaultFieldProperties(fieldType);
 
     fields.value.push(newField);
     selectedFieldIndex.value = fields.value.length - 1;
 };
 
-const selectField = (index) => {
-    selectedFieldIndex.value = index;
-    showFormSettings.value = false;
+const selectField = (index, nestedPath = null) => {
+    if (nestedPath) {
+        selectedFieldIndex.value = null;
+        selectedNestedPath.value = nestedPath;
+    } else {
+        selectedFieldIndex.value = index;
+        selectedNestedPath.value = null;
+    }
 };
 
-const openFormSettings = () => {
-    selectedFieldIndex.value = null;
-    showFormSettings.value = true;
+// Helper to check if a nested field is selected
+const isNestedFieldSelected = (parentIndex, childIndex = undefined, colIdx = undefined, colChildIdx = undefined) => {
+    if (!selectedNestedPath.value) return false;
+    const path = selectedNestedPath.value;
+
+    // Check if this specific nested field is selected
+    return path.parentIndex === parentIndex &&
+           path.childIndex === childIndex &&
+           path.colIdx === colIdx &&
+           path.colChildIdx === colChildIdx;
 };
 
 const removeField = (index) => {
@@ -1008,6 +1199,59 @@ const removeOption = (index) => {
 };
 
 // Structure field helpers
+const onNestedDrop = (event, parentField, tabIndex = null) => {
+    event.stopPropagation();
+    const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
+
+    // Create new field with default properties
+    const newField = getDefaultFieldProperties(fieldType);
+
+    // Add to container children or tab fields
+    if (tabIndex !== null) {
+        parentField.tabs[tabIndex].fields.push(newField);
+    } else {
+        parentField.containerChildren.push(newField);
+    }
+};
+
+// Handle drop on column layout
+const onColumnDrop = (event, parentField, columnIndex) => {
+    event.stopPropagation();
+    const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
+
+    // Create new field with default properties
+    const newField = getDefaultFieldProperties(fieldType);
+
+    // Track which column this field belongs to
+    newField.columnIndex = columnIndex;
+
+    // Initialize children array if it doesn't exist
+    if (!parentField.children) {
+        parentField.children = [];
+    }
+
+    // Add field to children array with column info
+    parentField.children.push(newField);
+};
+
+// Get fields for a specific column
+const getColumnFields = (parentField, columnIndex) => {
+    if (!parentField.children) {
+        return [];
+    }
+    return parentField.children.filter(field => field.columnIndex === columnIndex);
+};
+
+// Remove field from column
+const removeColumnField = (parentField, columnIndex, fieldIndex) => {
+    const columnFields = getColumnFields(parentField, columnIndex);
+    const fieldToRemove = columnFields[fieldIndex];
+    const actualIndex = parentField.children.findIndex(f => f.tempId === fieldToRemove.tempId);
+    if (actualIndex !== -1) {
+        parentField.children.splice(actualIndex, 1);
+    }
+};
+
 const addTab = () => {
     if (!selectedField.value.tabs) {
         selectedField.value.tabs = [];
@@ -1065,153 +1309,146 @@ const updateTableColumns = () => {
     });
 };
 
-const getFieldIcon = (type) => {
-    const field = fieldTypes.find(f => f.type === type);
-    if (field) return field.icon;
-
-    const staticField = staticHtmlFields.find(f => f.type === type);
-    if (staticField) return staticField.icon;
-
-    const structureField = structureFields.find(f => f.type === type);
-    return structureField ? structureField.icon : 'pi pi-question';
-};
-
-const getFieldComponent = (type) => {
-    const components = {
-        text: InputText,
-        email: InputText,
-        number: InputText,
-        tel: InputText,
-        url: InputText,
-        password: InputText,
-        location: InputText,
-        textarea: Textarea,
-        select: Dropdown,
-        multiselect: MultiSelect,
-        radio: RadioButton,
-        checkbox: Checkbox,
-        date: Calendar,
-        time: Calendar,
-        datetime: Calendar,
-        file: FileUpload,
-        image: FileUpload,
-    };
-    return components[type] || InputText;
-};
-
-const getFieldProps = (field) => {
-    const baseProps = {
-        placeholder: field.placeholder,
-        class: 'w-full',
+const prepareFieldForSave = (field) => {
+    // Standard database fields
+    const standardFields = {
+        id: field.id || null,
+        type: field.type,
+        label: field.label,
+        name: field.name || null,
+        placeholder: field.placeholder || null,
+        default_value: field.default_value || null,
+        validation_rules: field.validation_rules || {},
+        options: field.options || null,
+        is_required: field.is_required || false,
+        help_text: field.help_text || null,
     };
 
-    if (field.type === 'select') {
-        return {
-            ...baseProps,
-            options: field.options,
-            placeholder: field.placeholder || 'Select an option',
-        };
+    // Process nested fields recursively
+    let processedContainerChildren = null;
+    if (field.containerChildren && Array.isArray(field.containerChildren)) {
+        processedContainerChildren = field.containerChildren.map(child => {
+            // For nested fields, we only save the essential data, not prepare for database
+            const childData = {
+                tempId: child.tempId,
+                type: child.type,
+                label: child.label,
+                name: child.name || null,
+                placeholder: child.placeholder || null,
+                default_value: child.default_value || null,
+                validation_rules: child.validation_rules || {},
+                options: child.options || null,
+                is_required: child.is_required || false,
+                help_text: child.help_text || null,
+            };
+
+            // If the nested child is a column layout, include its children
+            if (['2-columns', '3-columns', '4-columns', 'grid-layout'].includes(child.type)) {
+                if (child.children && Array.isArray(child.children)) {
+                    childData.children = child.children.map(colField => ({
+                        tempId: colField.tempId,
+                        type: colField.type,
+                        label: colField.label,
+                        name: colField.name || null,
+                        placeholder: colField.placeholder || null,
+                        default_value: colField.default_value || null,
+                        validation_rules: colField.validation_rules || {},
+                        options: colField.options || null,
+                        is_required: colField.is_required || false,
+                        help_text: colField.help_text || null,
+                        columnIndex: colField.columnIndex,
+                    }));
+                }
+                childData.columns = child.columns || null;
+                childData.gap = child.gap || null;
+            }
+
+            return childData;
+        });
     }
 
-    if (field.type === 'multiselect') {
-        return {
-            ...baseProps,
-            options: field.options,
-            placeholder: field.placeholder || 'Select options',
-        };
+    // Process tabs with nested fields
+    let processedTabs = null;
+    if (field.tabs && Array.isArray(field.tabs)) {
+        processedTabs = field.tabs.map(tab => ({
+            title: tab.title,
+            fields: (tab.fields || []).map(child => ({
+                tempId: child.tempId,
+                type: child.type,
+                label: child.label,
+                name: child.name || null,
+                placeholder: child.placeholder || null,
+                default_value: child.default_value || null,
+                validation_rules: child.validation_rules || {},
+                options: child.options || null,
+                is_required: child.is_required || false,
+                help_text: child.help_text || null,
+            })),
+        }));
     }
 
-    if (field.type === 'number') {
-        return {
-            ...baseProps,
-            type: 'number',
-        };
+    // Process column children (for grid/column layouts)
+    let processedChildren = null;
+    if (field.children && Array.isArray(field.children)) {
+        processedChildren = field.children.map(child => ({
+            tempId: child.tempId,
+            type: child.type,
+            label: child.label,
+            name: child.name || null,
+            placeholder: child.placeholder || null,
+            default_value: child.default_value || null,
+            validation_rules: child.validation_rules || {},
+            options: child.options || null,
+            is_required: child.is_required || false,
+            help_text: child.help_text || null,
+            columnIndex: child.columnIndex, // Preserve column assignment
+        }));
     }
 
-    if (field.type === 'email') {
-        return {
-            ...baseProps,
-            type: 'email',
-        };
-    }
+    // Metadata fields (everything else)
+    const metadataFields = {
+        // Static HTML fields
+        content: field.content || null,
+        url: field.url || null,
+        imageSrc: field.imageSrc || null,
+        imageAlt: field.imageAlt || null,
+        height: field.height || null,
+        headingLevel: field.headingLevel || null,
+        // Structure fields
+        containerChildren: processedContainerChildren,
+        containerDescription: field.containerDescription || null,
+        containerPadding: field.containerPadding || null,
+        containerBorder: field.containerBorder !== undefined ? field.containerBorder : null,
+        tabs: processedTabs,
+        columns: field.columns || null,
+        gap: field.gap || null,
+        children: processedChildren,
+        rows: field.rows || null,
+        tableColumns: field.tableColumns || null,
+        headers: field.headers || null,
+        tableData: field.tableData || null,
+    };
 
-    if (field.type === 'tel') {
-        return {
-            ...baseProps,
-            type: 'tel',
-        };
-    }
+    // Remove null values from metadata to keep it clean
+    const cleanMetadata = Object.fromEntries(
+        Object.entries(metadataFields).filter(([_, value]) => value !== null)
+    );
 
-    if (field.type === 'url') {
-        return {
-            ...baseProps,
-            type: 'url',
-        };
-    }
-
-    if (field.type === 'password') {
-        return {
-            ...baseProps,
-            type: 'password',
-        };
-    }
-
-    if (field.type === 'location') {
-        return {
-            ...baseProps,
-            type: 'text',
-        };
-    }
-
-    if (field.type === 'textarea') {
-        return {
-            ...baseProps,
-            rows: 3,
-        };
-    }
-
-    if (field.type === 'time') {
-        return {
-            ...baseProps,
-            timeOnly: true,
-            showIcon: true,
-        };
-    }
-
-    if (field.type === 'datetime') {
-        return {
-            ...baseProps,
-            showTime: true,
-            showIcon: true,
-        };
-    }
-
-    if (field.type === 'file') {
-        return {
-            mode: 'basic',
-            chooseLabel: field.placeholder || 'Choose File',
-            class: 'w-full',
-        };
-    }
-
-    if (field.type === 'image') {
-        return {
-            mode: 'basic',
-            accept: 'image/*',
-            chooseLabel: field.placeholder || 'Choose Image',
-            class: 'w-full',
-        };
-    }
-
-    return baseProps;
+    return {
+        ...standardFields,
+        metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : null,
+    };
 };
 
 const saveForm = () => {
     saving.value = true;
 
+    // Prepare fields by separating standard fields from metadata
+    const preparedFields = fields.value.map(prepareFieldForSave);
+
     router.put(`/forms/${props.form.id}`, {
         ...formData.value,
-        fields: fields.value,
+        fields: preparedFields,
     }, {
         onSuccess: () => {
             saving.value = false;
@@ -1239,26 +1476,66 @@ const generatedCode = computed(() => {
     return '';
 });
 
+const generateFieldVueCode = (field, indent = '    ') => {
+    let component = '';
+
+    // Handle structure fields
+    if (field.type === 'container') {
+        const childrenHTML = (field.containerChildren || []).map(child => generateFieldVueCode(child, indent + '      ')).join('\n\n');
+        return `${indent}<div class="space-y-2">
+${indent}  <label class="block text-sm font-medium">${field.label}</label>
+${indent}  <div class="rounded${field.containerBorder ? ' border border-gray-300' : ''}" style="padding: ${field.containerPadding || 16}px;">
+${childrenHTML || `${indent}    <p class="text-gray-500">Empty container</p>`}
+${indent}  </div>
+${indent}</div>`;
+    }
+
+    if (field.type === 'tabs-container') {
+        const tabsContent = field.tabs.map(tab => {
+            const tabFieldsHTML = (tab.fields || []).map(child => generateFieldVueCode(child, indent + '      ')).join('\n\n');
+            return `${indent}  <TabPanel header="${tab.title}">
+${tabFieldsHTML || `${indent}    <p class="text-gray-500">Empty tab</p>`}
+${indent}  </TabPanel>`;
+        }).join('\n');
+        return `${indent}<div class="space-y-2">
+${indent}  <label class="block text-sm font-medium">${field.label}</label>
+${indent}  <TabView>
+${tabsContent}
+${indent}  </TabView>
+${indent}</div>`;
+    }
+
+    // Rest of the field generation logic...
+    // For brevity, we'll keep existing logic and just call this function
+    // Handle other field types similar to before
+    // (We'll integrate this properly in the main function)
+};
+
 const generateVueCode = () => {
     const fieldsHTML = fields.value.map(field => {
         let component = '';
 
         // Handle structure fields
         if (field.type === 'container') {
+            const childrenCount = (field.containerChildren || []).length;
+            const childrenPreview = childrenCount > 0 ? `${childrenCount} nested field(s)` : 'Empty container';
             return `    <div class="space-y-2">
       <label class="block text-sm font-medium">${field.label}</label>
       <div class="rounded${field.containerBorder ? ' border border-gray-300' : ''}" style="padding: ${field.containerPadding || 16}px; min-height: 100px;">
-        ${field.containerContent || 'Container content here...'}
+        <!-- ${childrenPreview} -->
+        <p class="text-gray-500">Container with ${childrenCount} field(s)</p>
       </div>
     </div>`;
         }
 
         if (field.type === 'tabs-container') {
-            const tabsContent = field.tabs.map(tab =>
-                `<TabPanel header="${tab.title}">
-      <p class="text-gray-600">Tab content here</p>
-    </TabPanel>`
-            ).join('\n    ');
+            const tabsContent = field.tabs.map(tab => {
+                const fieldsCount = (tab.fields || []).length;
+                return `<TabPanel header="${tab.title}">
+      <!-- ${fieldsCount} nested field(s) -->
+      <p class="text-gray-600">Tab with ${fieldsCount} field(s)</p>
+    </TabPanel>`;
+            }).join('\n    ');
             return `    <div class="space-y-2">
       <label class="block text-sm font-medium">${field.label}</label>
       <TabView>
@@ -1314,7 +1591,7 @@ const generateVueCode = () => {
             return `    <Button label="${field.content}" severity="${severity}" />`;
         }
         if (field.type === 'link') {
-            return `    <a href="${field.url}" class="text-blue-600 underline">${field.content}</a>`;
+            return `    <a href="${field.url}" class="text-primary-600 underline">${field.content}</a>`;
         }
         if (field.type === 'quote') {
             return `    <blockquote class="border-l-4 pl-4 italic">${field.content}</blockquote>`;
@@ -1413,22 +1690,28 @@ const generateHTMLCode = () => {
 
         // Handle structure fields
         if (field.type === 'container') {
+            const childrenCount = (field.containerChildren || []).length;
             return `  <div class="mb-4">
     <label class="block mb-2 font-medium">${field.label}</label>
     <div class="rounded${field.containerBorder ? ' border border-gray-300' : ''}" style="padding: ${field.containerPadding || 16}px; min-height: 100px;">
-      ${field.containerContent || 'Container content here...'}
+      <!-- Container with ${childrenCount} field(s) -->
+      <p class="text-gray-500">Container with ${childrenCount} nested field(s)</p>
     </div>
   </div>`;
         }
 
         if (field.type === 'tabs-container') {
+            const tabsHTML = field.tabs.map((tab, idx) => {
+                const fieldsCount = (tab.fields || []).length;
+                return `<li><button type="button" class="px-4 py-2">${tab.title} (${fieldsCount})</button></li>`;
+            }).join('\n        ');
             return `  <div class="mb-4">
     <label class="block mb-2 font-medium">${field.label}</label>
     <div class="border rounded p-4">
       <ul class="flex gap-4 border-b mb-4">
-        ${field.tabs.map((tab, idx) => `<li><button type="button" class="px-4 py-2">${tab.title}</button></li>`).join('\n        ')}
+        ${tabsHTML}
       </ul>
-      <div>Tab content here</div>
+      <div><!-- Tabs contain nested fields --></div>
     </div>
   </div>`;
         }
@@ -1475,11 +1758,11 @@ const generateHTMLCode = () => {
             return `  ${field.content}`;
         }
         if (field.type.startsWith('button-')) {
-            const buttonClass = field.type === 'button-danger' ? 'bg-red-500' : field.type === 'button-secondary' ? 'bg-gray-500' : 'bg-blue-500';
+            const buttonClass = field.type === 'button-danger' ? 'bg-red-500' : field.type === 'button-secondary' ? 'bg-gray-500' : 'bg-primary-500';
             return `  <button type="button" class="px-4 py-2 ${buttonClass} text-white rounded mb-4">${field.content}</button>`;
         }
         if (field.type === 'link') {
-            return `  <a href="${field.url}" class="text-blue-600 underline mb-4 block">${field.content}</a>`;
+            return `  <a href="${field.url}" class="text-primary-600 underline mb-4 block">${field.content}</a>`;
         }
         if (field.type === 'quote') {
             return `  <blockquote class="border-l-4 pl-4 italic mb-4">${field.content}</blockquote>`;
@@ -1537,7 +1820,7 @@ const generateHTMLCode = () => {
     return `<form method="POST" action="/submit" class="max-w-2xl mx-auto p-6">
 ${fieldsHTML}
 
-  <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded">Submit</button>
+  <button type="submit" class="px-4 py-2 bg-primary-500 text-white rounded">Submit</button>
 </form>`;
 };
 
@@ -1547,22 +1830,28 @@ const generateBladeCode = () => {
 
         // Handle structure fields (same as HTML since Blade is HTML with PHP)
         if (field.type === 'container') {
+            const childrenCount = (field.containerChildren || []).length;
             return `  <div class="mb-4">
     <label class="block mb-2 font-medium">${field.label}</label>
     <div class="rounded${field.containerBorder ? ' border border-gray-300' : ''}" style="padding: ${field.containerPadding || 16}px; min-height: 100px;">
-      ${field.containerContent || 'Container content here...'}
+      {{-- Container with ${childrenCount} field(s) --}}
+      <p class="text-gray-500">Container with ${childrenCount} nested field(s)</p>
     </div>
   </div>`;
         }
 
         if (field.type === 'tabs-container') {
+            const tabsHTML = field.tabs.map((tab, idx) => {
+                const fieldsCount = (tab.fields || []).length;
+                return `<li><button type="button" class="px-4 py-2">${tab.title} (${fieldsCount})</button></li>`;
+            }).join('\n        ');
             return `  <div class="mb-4">
     <label class="block mb-2 font-medium">${field.label}</label>
     <div class="border rounded p-4">
       <ul class="flex gap-4 border-b mb-4">
-        ${field.tabs.map((tab, idx) => `<li><button type="button" class="px-4 py-2">${tab.title}</button></li>`).join('\n        ')}
+        ${tabsHTML}
       </ul>
-      <div>Tab content here</div>
+      <div>{{-- Tabs contain nested fields --}}</div>
     </div>
   </div>`;
         }
@@ -1609,11 +1898,11 @@ const generateBladeCode = () => {
             return `  ${field.content}`;
         }
         if (field.type.startsWith('button-')) {
-            const buttonClass = field.type === 'button-danger' ? 'bg-red-500' : field.type === 'button-secondary' ? 'bg-gray-500' : 'bg-blue-500';
+            const buttonClass = field.type === 'button-danger' ? 'bg-red-500' : field.type === 'button-secondary' ? 'bg-gray-500' : 'bg-primary-500';
             return `  <button type="button" class="px-4 py-2 ${buttonClass} text-white rounded mb-4">${field.content}</button>`;
         }
         if (field.type === 'link') {
-            return `  <a href="${field.url}" class="text-blue-600 underline mb-4 block">${field.content}</a>`;
+            return `  <a href="${field.url}" class="text-primary-600 underline mb-4 block">${field.content}</a>`;
         }
         if (field.type === 'quote') {
             return `  <blockquote class="border-l-4 pl-4 italic mb-4">${field.content}</blockquote>`;
@@ -1665,7 +1954,7 @@ const generateBladeCode = () => {
   @csrf
 ${fieldsHTML}
 
-  <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded">Submit</button>
+  <button type="submit" class="px-4 py-2 bg-primary-500 text-white rounded">Submit</button>
 </form>`;
 };
 
@@ -1757,5 +2046,23 @@ const copyToClipboard = () => {
 
 :deep(.settings-tabs .p-tabview-panel) {
     background: transparent;
+}
+
+/* Column drop zone styles */
+.column-drop-zone {
+    position: relative;
+}
+
+.column-drop-zone.dragover-highlight {
+    border-color: rgb(59 130 246) !important;
+    background-color: rgb(239 246 255) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transform: scale(1.02);
+}
+
+.dark .column-drop-zone.dragover-highlight {
+    border-color: rgb(96 165 250) !important;
+    background-color: rgb(30 58 138 / 0.2) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 </style>

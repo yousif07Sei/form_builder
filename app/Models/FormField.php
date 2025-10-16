@@ -20,6 +20,7 @@ class FormField extends Model
         'order',
         'is_required',
         'help_text',
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class FormField extends Model
         'options' => 'array',
         'is_required' => 'boolean',
         'order' => 'integer',
+        'metadata' => 'array',
     ];
 
     public function form(): BelongsTo
