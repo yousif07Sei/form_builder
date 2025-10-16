@@ -45,29 +45,37 @@
 
             <!-- Center - Form Builder Canvas -->
             <div class="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
-                <div class="max-w-3xl mx-auto py-12">
+                <div class="max-w-2xl mx-auto py-12">
                     <!-- Form Header -->
                     <div class="text-center mb-8">
-                        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                        <h1
+                            class="text-4xl font-bold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            @click="openFormSettings"
+                        >
                             {{ formData.title }}
                         </h1>
-                        <p v-if="formData.description" class="text-lg text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                        <p
+                            v-if="formData.description"
+                            class="text-lg text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            @click="openFormSettings"
+                        >
                             {{ formData.description }}
                         </p>
                     </div>
 
                     <!-- Form Card -->
-                    <Card>
+                    <Card class="min-h-[600px]">
                         <template #content>
                             <!-- Drop Zone -->
                             <div
-                                class="min-h-[300px]"
+                                class="min-h-[500px]"
                                 :class="{ 'bg-primary-50 dark:bg-primary-900/20': isDragging }"
                                 @dragover.prevent="isDragging = true"
                                 @dragleave="isDragging = false"
                                 @drop.prevent="onDrop"
+                                @click.self="openFormSettings"
                             >
-                                <div v-if="fields.length === 0" class="text-center py-12">
+                                <div v-if="fields.length === 0" class="text-center py-12" @click="openFormSettings">
                                     <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
                                     <p class="text-gray-600 dark:text-gray-400">
                                         Drag and drop fields here to build your form
@@ -502,31 +510,96 @@
 
             <!-- Right Sidebar - Settings Panel -->
             <div
-                v-if="selectedFieldIndex !== null || selectedNestedPath !== null"
-                class="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto"
+                v-if="selectedFieldIndex !== null || selectedNestedPath !== null || showFormSettings"
+                class="settings-panel-dark w-80 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 overflow-y-auto"
             >
                 <div class="flex items-center justify-between p-4 pb-0">
                     <div>
                         <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase">
-                            {{ selectedField ? selectedField.label : 'Settings' }}
+                            {{ showFormSettings ? 'Form Settings' : (selectedField ? selectedField.label : 'Settings') }}
                         </h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {{ selectedField ? selectedField.type : '' }}
+                            {{ showFormSettings ? 'Configure your form' : (selectedField ? selectedField.type : '') }}
                         </p>
                     </div>
                     <Button
                         icon="pi pi-times"
                         text
                         rounded
-                        @click="selectedFieldIndex = null; selectedNestedPath = null"
+                        @click="selectedFieldIndex = null; selectedNestedPath = null; showFormSettings = false"
                     />
                 </div>
 
+                <!-- Form Settings Content (with tabs) -->
+                <div v-if="showFormSettings" class="p-4">
+                    <TabView>
+                        <TabPanel header="General">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Form Title
+                                    </label>
+                                    <InputText v-model="formData.title" class="w-full" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Description
+                                    </label>
+                                    <Textarea v-model="formData.description" rows="3" class="w-full" />
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <InputSwitch v-model="formData.is_active" inputId="form_is_active" />
+                                    <label for="form_is_active" class="text-sm text-gray-700 dark:text-gray-300">
+                                        Form is active
+                                    </label>
+                                </div>
+                            </div>
+                        </TabPanel>
+                        <TabPanel header="Theme">
+                            <div class="space-y-4">
+                                <div class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded text-sm text-gray-600 dark:text-gray-400">
+                                    <i class="pi pi-info-circle mr-2"></i>
+                                    Theme customization options will be added here
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Primary Color
+                                    </label>
+                                    <InputText placeholder="#000000" class="w-full" disabled />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Background Color
+                                    </label>
+                                    <InputText placeholder="#ffffff" class="w-full" disabled />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Font Family
+                                    </label>
+                                    <Dropdown
+                                        :options="['Default', 'Arial', 'Helvetica', 'Times New Roman']"
+                                        placeholder="Select font"
+                                        class="w-full"
+                                        disabled
+                                    />
+                                </div>
+                            </div>
+                        </TabPanel>
+                    </TabView>
+                </div>
+
                 <!-- Field Settings Content -->
-                <div v-if="selectedField" class="p-4 space-y-4">
+                <div v-else-if="selectedField" class="p-4 space-y-4">
                     <!-- Properties Accordion -->
-                    <Accordion>
-                        <AccordionTab header="Properties">
+                    <Accordion :pt="{ root: { style: 'background: transparent' } }">
+                        <AccordionTab header="Properties" :pt="{
+                            root: { style: 'background: transparent' },
+                            header: { style: 'background: transparent' },
+                            headerAction: { style: 'background: transparent' },
+                            headerLink: { style: 'background: transparent' },
+                            content: { style: 'background: transparent' }
+                        }">
                             <div class="space-y-4">
                                 <!-- Field Name/Label -->
                                 <div>
@@ -542,31 +615,6 @@
                                         Placeholder
                                     </label>
                                     <InputText v-model="selectedField.placeholder" class="w-full" />
-                                </div>
-
-                                <!-- Form Settings -->
-                                <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-                                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Form Settings</h4>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Form Title
-                                            </label>
-                                            <InputText v-model="formData.title" class="w-full" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Description
-                                            </label>
-                                            <Textarea v-model="formData.description" rows="2" class="w-full" />
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <InputSwitch v-model="formData.is_active" inputId="is_active" />
-                                            <label for="is_active" class="text-sm text-gray-700 dark:text-gray-300">
-                                                Form is active
-                                            </label>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </AccordionTab>
@@ -1099,6 +1147,7 @@ const loadedFields = (props.form.fields || []).map(field => {
 const fields = ref(loadedFields);
 const selectedFieldIndex = ref(null);
 const selectedNestedPath = ref(null); // { parentIndex, childIndex, columnIndex } for nested fields
+const showFormSettings = ref(false); // Track if form settings panel is open
 const isDragging = ref(false);
 const saving = ref(false);
 const showExportDialog = ref(false);
@@ -1159,6 +1208,7 @@ const onDrop = (event) => {
 };
 
 const selectField = (index, nestedPath = null) => {
+    showFormSettings.value = false; // Close form settings when selecting a field
     if (nestedPath) {
         selectedFieldIndex.value = null;
         selectedNestedPath.value = nestedPath;
@@ -1166,6 +1216,12 @@ const selectField = (index, nestedPath = null) => {
         selectedFieldIndex.value = index;
         selectedNestedPath.value = null;
     }
+};
+
+const openFormSettings = () => {
+    selectedFieldIndex.value = null;
+    selectedNestedPath.value = null;
+    showFormSettings.value = true;
 };
 
 // Helper to check if a nested field is selected
@@ -2065,4 +2121,8 @@ const copyToClipboard = () => {
     background-color: rgb(30 58 138 / 0.2) !important;
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
 }
+
+/* Settings Panel Dark Theme Overrides */
+/* Make all inputs and components match the dark sidebar - using global styles for better specificity */
+
 </style>

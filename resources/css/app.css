@@ -42,3 +42,196 @@
     .border-surface-200 { border-color: var(--p-surface-200); }
     .border-surface-300 { border-color: var(--p-surface-300); }
 }
+
+/* Settings Panel Dark Theme - PrimeVue Component Overrides */
+/* Input fields styling - Very dark theme to match reference */
+.settings-panel-dark .p-inputtext,
+.settings-panel-dark .p-textarea,
+.settings-panel-dark .p-dropdown,
+.settings-panel-dark .p-multiselect,
+.settings-panel-dark .p-inputnumber-input {
+    background-color: rgb(17 24 39) !important; /* gray-900 - much darker */
+    border-color: rgb(31 41 55) !important; /* gray-800 - subtle border */
+    color: rgb(229 231 235) !important; /* gray-200 */
+}
+
+.settings-panel-dark .p-inputtext:enabled:hover,
+.settings-panel-dark .p-textarea:enabled:hover,
+.settings-panel-dark .p-dropdown:not(.p-disabled):hover,
+.settings-panel-dark .p-multiselect:not(.p-disabled):hover {
+    border-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.settings-panel-dark .p-inputtext:enabled:focus,
+.settings-panel-dark .p-textarea:enabled:focus,
+.settings-panel-dark .p-dropdown:not(.p-disabled).p-focus,
+.settings-panel-dark .p-multiselect:not(.p-disabled).p-focus {
+    border-color: rgb(75 85 99) !important; /* gray-600 */
+    box-shadow: 0 0 0 0.2rem rgba(75, 85, 99, 0.25) !important;
+}
+
+/* Dropdown specific styling */
+.settings-panel-dark .p-dropdown .p-dropdown-label,
+.settings-panel-dark .p-dropdown .p-dropdown-trigger {
+    background-color: transparent !important;
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-dropdown-panel {
+    background-color: rgb(17 24 39) !important; /* gray-900 */
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-dropdown-item {
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-dropdown-item:not(.p-disabled):hover {
+    background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+/* Accordion styling - Target ALL possible elements */
+.settings-panel-dark .p-accordion,
+.settings-panel-dark .p-accordion-tab,
+.settings-panel-dark .p-accordiontab {
+    background-color: transparent !important;
+}
+
+.settings-panel-dark .p-accordion .p-accordion-header,
+.settings-panel-dark .p-accordion-header {
+    background-color: transparent !important;
+}
+
+.settings-panel-dark .p-accordion .p-accordion-header .p-accordion-header-link,
+.settings-panel-dark .p-accordion-header-link {
+    background-color: transparent !important;
+    border-color: rgb(31 41 55) !important; /* gray-800 - subtle border */
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-accordion .p-accordion-header:not(.p-disabled) .p-accordion-header-link:hover,
+.settings-panel-dark .p-accordion-header:not(.p-disabled) .p-accordion-header-link:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.settings-panel-dark .p-accordion .p-accordion-header:not(.p-disabled).p-accordion-header-active .p-accordion-header-link,
+.settings-panel-dark .p-accordion-header:not(.p-disabled).p-accordion-header-active .p-accordion-header-link {
+    background-color: transparent !important;
+    border-color: rgb(75 85 99) !important; /* gray-600 */
+}
+
+.settings-panel-dark .p-accordion .p-accordion-content,
+.settings-panel-dark .p-accordion-content {
+    background-color: transparent !important;
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+    color: rgb(229 231 235) !important;
+}
+
+/* Target AccordionTab specifically */
+.settings-panel-dark .p-accordiontab-header,
+.settings-panel-dark .p-accordiontab-header-link,
+.settings-panel-dark .p-accordiontab-content {
+    background-color: transparent !important;
+}
+
+/* TabView styling */
+.settings-panel-dark .p-tabview .p-tabview-nav {
+    background-color: transparent !important;
+    border-bottom-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+.settings-panel-dark .p-tabview .p-tabview-nav li:not(.p-disabled) .p-tabview-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-color: transparent !important;
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-tabview .p-tabview-nav li.p-tabview-selected .p-tabview-nav-link {
+    background-color: transparent !important;
+    border-color: rgb(75 85 99) !important; /* gray-600 */
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-tabview .p-tabview-panels {
+    background-color: transparent !important;
+    color: rgb(229 231 235) !important;
+}
+
+/* Button styling */
+.settings-panel-dark .p-button.p-button-outlined {
+    background-color: transparent !important;
+    color: rgb(229 231 235) !important;
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-button.p-button-outlined:enabled:hover {
+    background-color: rgb(17 24 39) !important; /* gray-900 */
+    border-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.settings-panel-dark .p-button.p-button-text {
+    color: rgb(229 231 235) !important;
+}
+
+.settings-panel-dark .p-button.p-button-text:enabled:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.settings-panel-dark .p-button.p-button-danger.p-button-text {
+    color: rgb(248 113 113) !important;
+}
+
+/* InputSwitch styling */
+.settings-panel-dark .p-inputswitch {
+    background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-inputswitch.p-inputswitch-checked {
+    background-color: rgb(75 85 99) !important; /* gray-600 */
+}
+
+.settings-panel-dark .p-inputswitch .p-inputswitch-slider {
+    background-color: rgb(17 24 39) !important; /* gray-900 */
+}
+
+.settings-panel-dark .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
+    background-color: rgb(255 255 255) !important;
+}
+
+/* Placeholder text */
+.settings-panel-dark .p-inputtext::placeholder,
+.settings-panel-dark .p-textarea::placeholder {
+    color: rgb(107 114 128) !important;
+}
+
+/* Disabled inputs */
+.settings-panel-dark .p-inputtext:disabled,
+.settings-panel-dark .p-textarea:disabled,
+.settings-panel-dark .p-dropdown:disabled {
+    background-color: rgb(3 7 18) !important; /* gray-950 - even darker */
+    opacity: 0.6;
+}
+
+/* FileUpload styling */
+.settings-panel-dark .p-fileupload {
+    background-color: transparent !important;
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-fileupload .p-fileupload-buttonbar {
+    background-color: rgb(17 24 39) !important; /* gray-900 */
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.settings-panel-dark .p-fileupload .p-fileupload-content {
+    background-color: rgb(17 24 39) !important; /* gray-900 */
+    border-color: rgb(31 41 55) !important; /* gray-800 */
+    color: rgb(229 231 235) !important;
+}
