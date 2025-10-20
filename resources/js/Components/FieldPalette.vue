@@ -36,7 +36,7 @@
                         </div>
                     </div>
                 </div>
-            </TabPanel>
+            </TabPanel> 
 
             <!-- Structure Tab -->
             <TabPanel header="Structure">

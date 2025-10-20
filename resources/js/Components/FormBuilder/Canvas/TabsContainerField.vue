@@ -1,8 +1,5 @@
 <template>
     <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ field.label }}
-        </label>
         <TabView class="structure-tabs">
             <TabPanel v-for="(tab, tabIdx) in field.tabs" :key="tabIdx" :header="tab.title">
                 <div

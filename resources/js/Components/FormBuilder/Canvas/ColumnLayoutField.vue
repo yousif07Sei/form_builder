@@ -1,8 +1,5 @@
 <template>
     <div class="space-y-2">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ field.label }}
-        </label>
         <div
             class="grid rounded-lg p-3 bg-gradient-to-br from-primary-50/50 to-primary-100/50 dark:from-gray-800/50 dark:to-gray-700/50 border-2 border-dashed border-primary-200 dark:border-primary-800"
             :style="{

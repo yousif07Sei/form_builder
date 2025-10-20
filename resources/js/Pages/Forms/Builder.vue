@@ -74,10 +74,10 @@
                                             @delete="removeField(index)"
                                             @select-field="({ childIndex }) => selectField(index, { parentIndex: index, childIndex })"
                                             @nested-drop="({ event }) => onNestedDrop(event, element)"
-                                            @column-drop="({ event, colIdx }) => onColumnDrop(event, element, colIdx)"
+                                            @column-drop="({ event, colIdx, childField }) => onColumnDrop(event, childField || element, colIdx)"
                                             @remove-field="({ childIdx }) => element.containerChildren.splice(childIdx, 1)"
-                                            @select-column-field="({ colIdx, colChildIdx }) => selectField(index, { parentIndex: index, colIdx, colChildIdx })"
-                                            @remove-column-field="({ colIdx, colChildIdx }) => removeColumnField(element, colIdx, colChildIdx)"
+                                            @select-column-field="({ childIdx, colIdx, colChildIdx }) => selectField(index, { parentIndex: index, childIndex: childIdx, colIdx, colChildIdx })"
+                                            @remove-column-field="({ colIdx, colChildIdx, childField }) => removeColumnField(childField || element, colIdx, colChildIdx)"
                                         />
                                     </template>
                                 </draggable>
