@@ -37,50 +37,42 @@
                     <!-- Form Card -->
                     <Card class="min-h-[600px]">
                         <template #content>
-                            <!-- Drop Zone -->
+                            <!-- Rows Container -->
                             <div
-                                class="min-h-[500px]"
+                                class="min-h-[500px] p-4 transition-colors"
                                 :class="{ 'bg-primary-50 dark:bg-primary-900/20': isDragging }"
-                                @dragover.prevent="isDragging = true"
-                                @dragleave="isDragging = false"
-                                @drop.prevent="onDrop"
                                 @click.self="openFormSettings"
+                                @dragover.prevent="handleCanvasDragOver"
+                                @dragleave="handleCanvasDragLeave"
+                                @drop.prevent="handleCanvasDrop"
                             >
-                                <div v-if="fields.length === 0" class="text-center py-12" @click="openFormSettings">
+                                <!-- Empty State -->
+                                <div v-if="rows.length === 1 && rows[0].fields.length === 0" class="text-center py-12 mb-4 pointer-events-none">
                                     <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
                                     <p class="text-gray-600 dark:text-gray-400">
-                                        Drag and drop fields here to build your form
+                                        Drag and drop fields anywhere on the canvas
                                     </p>
                                 </div>
 
-                                <!-- Fields List -->
-                                <draggable
-                                    v-model="fields"
-                                    :item-key="(item) => item.id || item.tempId"
-                                    handle=".drag-handle"
-                                    class="space-y-6"
-                                >
-                                    <template #item="{ element, index }">
-                                        <FieldRenderer
-                                            :field="element"
-                                            :field-index="index"
-                                            :is-selected="selectedFieldIndex === index"
-                                            :is-nested-field-selected="(childIdx, colIdx, colChildIdx) => isNestedFieldSelected(index, childIdx, colIdx, colChildIdx)"
-                                            :is-column-field-selected="(colIdx, colChildIdx) => isNestedFieldSelected(index, undefined, colIdx, colChildIdx)"
-                                            :get-field-component="getFieldComponent"
-                                            :get-field-props="getFieldProps"
-                                            :get-column-fields="getColumnFields"
-                                            @select="selectField(index)"
-                                            @delete="removeField(index)"
-                                            @select-field="({ childIndex }) => selectField(index, { parentIndex: index, childIndex })"
-                                            @nested-drop="({ event }) => onNestedDrop(event, element)"
-                                            @column-drop="({ event, colIdx }) => onColumnDrop(event, element, colIdx)"
-                                            @remove-field="({ childIdx }) => element.containerChildren.splice(childIdx, 1)"
-                                            @select-column-field="({ colIdx, colChildIdx }) => selectField(index, { parentIndex: index, colIdx, colChildIdx })"
-                                            @remove-column-field="({ colIdx, colChildIdx }) => removeColumnField(element, colIdx, colChildIdx)"
-                                        />
-                                    </template>
-                                </draggable>
+                                <!-- Form Rows -->
+                                <FormRow
+                                    v-for="(row, rowIndex) in rows"
+                                    :key="row.id"
+                                    :row="row"
+                                    :row-index="rowIndex"
+                                    :max-slots="3"
+                                    :selected-field-index="selectedFieldIndex"
+                                    :selected-row-index="selectedRowIndex"
+                                    :get-field-component="getFieldComponent"
+                                    :get-field-props="getFieldProps"
+                                    @drop="onRowDrop"
+                                    @drop-subrow="onSubRowDrop"
+                                    @remove-field="removeFieldFromRow"
+                                    @remove-subrow-field="removeSubRowField"
+                                    @select-field="selectFieldInRow"
+                                    @select-subrow-field="selectSubRowField"
+                                    @select-row="selectRow"
+                                />
                             </div>
                         </template>
                     </Card>
@@ -95,13 +87,16 @@
             <!-- Right Sidebar - Settings Panel -->
             <SettingsPanel
                 :selected-field-index="selectedFieldIndex"
+                :selected-row-index="selectedRowIndex"
                 :selected-nested-path="selectedNestedPath"
                 :show-form-settings="showFormSettings"
                 :selected-field="selectedField"
+                :selected-row="selectedRow"
                 :form-data="formData"
-                @close="selectedFieldIndex = null; selectedNestedPath = null; showFormSettings = false"
+                @close="selectedFieldIndex = null; selectedRowIndex = null; selectedNestedPath = null; showFormSettings = false"
                 @update:formData="formData = $event"
-                @update:field="Object.assign(selectedField, $event)"
+                @update:field="updateFieldInRow($event)"
+                @update:row="updateRow($event)"
                 @add-tab="addTab"
                 @remove-tab="removeTab"
                 @update-table-rows="updateTableRows"
@@ -193,6 +188,7 @@ import FieldPalette from '@/Components/FieldPalette.vue';
 import BuilderTopBar from '@/Components/FormBuilder/BuilderTopBar.vue';
 import SettingsPanel from '@/Components/FormBuilder/Settings/SettingsPanel.vue';
 import FieldRenderer from '@/Components/FormBuilder/Canvas/FieldRenderer.vue';
+import FormRow from '@/Components/FormBuilder/Canvas/FormRow.vue';
 import { getDefaultFieldProperties } from '@/utils/fieldTypes';
 import { getFieldComponent, getFieldProps } from '@/utils/fieldHelpers';
 import { useFormPersistence } from '@/composables/useFormPersistence';
@@ -234,7 +230,15 @@ console.log('[Builder] Loaded fields:', loadedFields);
 
 const fields = ref(loadedFields);
 console.log('[Builder] Component initialized successfully');
-const selectedFieldIndex = ref(null);
+
+// Row-based canvas system
+let rowIdCounter = 0;
+const rows = ref([
+    { id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 }
+]);
+
+const selectedFieldIndex = ref(null); // Now stores { rowIndex, slotIndex }
+const selectedRowIndex = ref(null); // Stores rowIndex when row itself is selected
 const selectedNestedPath = ref(null); // { parentIndex, childIndex, columnIndex } for nested fields
 const showFormSettings = ref(false); // Track if form settings panel is open
 const isDragging = ref(false);
@@ -245,38 +249,66 @@ const activeTab = ref(0);
 const settingsTab = ref(0);
 
 const selectedField = computed(() => {
-    // If nested path is set, get nested field
-    if (selectedNestedPath.value !== null) {
-        const { parentIndex, childIndex, colIdx, colChildIdx } = selectedNestedPath.value;
-        const parent = fields.value[parentIndex];
+    console.log('[selectedField] Computing...', {
+        selectedFieldIndex: selectedFieldIndex.value,
+        rowsLength: rows.value.length
+    });
 
-        if (!parent) return null;
+    // Get field from row-based structure
+    if (selectedFieldIndex.value !== null && typeof selectedFieldIndex.value === 'object') {
+        const { rowIndex, slotIndex } = selectedFieldIndex.value;
+        const row = rows.value[rowIndex];
+        const field = row?.fields[slotIndex] || null;
 
-        // Handle fields inside column layouts that are inside containers
-        if (colIdx !== undefined && colChildIdx !== undefined && childIndex !== undefined) {
-            const containerChild = parent.containerChildren?.[childIndex];
-            if (containerChild?.children) {
-                const columnFields = containerChild.children.filter(f => f.columnIndex === colIdx);
-                return columnFields[colChildIdx];
-            }
-        }
+        console.log('[selectedField] Result:', {
+            rowIndex,
+            slotIndex,
+            row,
+            field
+        });
 
-        // Handle fields inside column layouts (top-level or container child)
-        if (colIdx !== undefined && colChildIdx !== undefined && childIndex === undefined) {
-            if (parent.children) {
-                const columnFields = parent.children.filter(f => f.columnIndex === colIdx);
-                return columnFields[colChildIdx];
-            }
-        }
-
-        // Handle container children (non-column fields)
-        if (parent.containerChildren && childIndex !== undefined) {
-            return parent.containerChildren[childIndex];
-        }
+        return field;
     }
 
-    // Otherwise get top-level field
-    return selectedFieldIndex.value !== null ? fields.value[selectedFieldIndex.value] : null;
+    console.log('[selectedField] Returning null');
+    return null;
+});
+
+const selectedRow = computed(() => {
+    if (selectedRowIndex.value !== null) {
+        return rows.value[selectedRowIndex.value] || null;
+    }
+    return null;
+});
+
+// Flatten rows into fields array for backward compatibility (preview, save, export)
+const flattenedFields = computed(() => {
+    const allFields = [];
+
+    rows.value.forEach(row => {
+        if (row.fields.length > 0) {
+            // If row has multiple fields, wrap them in a column layout
+            if (row.fields.length > 1) {
+                const columnLayout = {
+                    tempId: `row-${row.id}`,
+                    type: `${row.fields.length}-columns`,
+                    label: `${row.fields.length} Columns`,
+                    columns: row.fields.length,
+                    gap: 16,
+                    children: row.fields.map((field, index) => ({
+                        ...field,
+                        columnIndex: index
+                    }))
+                };
+                allFields.push(columnLayout);
+            } else {
+                // Single field, add directly
+                allFields.push(row.fields[0]);
+            }
+        }
+    });
+
+    return allFields;
 });
 
 // Drag and drop handlers (use composable)
@@ -288,7 +320,239 @@ const onDrop = (event) => {
     onDropComposable(event, isDragging, fields, selectedFieldIndex);
 };
 
+// Row-based drop handler
+const onRowDrop = ({ event, rowIndex, slotIndex }) => {
+    event.stopPropagation();
+    const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
+
+    // Create new field with default properties
+    const newField = getDefaultFieldProperties(fieldType);
+
+    // Add field to the specific slot in the row
+    const row = rows.value[rowIndex];
+
+    // Calculate remaining width in the row
+    const totalUsedWidth = row.fields.reduce((sum, field) => {
+        const fieldWidth = field.customWidth || (100 / (field.gridColumns || 1));
+        return sum + fieldWidth;
+    }, 0);
+
+    const remainingWidth = 100 - totalUsedWidth;
+
+    // If there's remaining space, set the new field to fill it
+    if (remainingWidth > 0 && remainingWidth < 100) {
+        newField.customWidth = remainingWidth;
+        newField.gridColumns = 1; // Set to 1 column since we're using custom width
+    }
+
+    // Insert field at the correct position
+    if (slotIndex >= row.fields.length) {
+        row.fields.push(newField);
+    } else {
+        row.fields.splice(slotIndex, 0, newField);
+    }
+
+    // Auto-add new empty row if current row has fields and is the last row
+    if (row.fields.length > 0 && rowIndex === rows.value.length - 1) {
+        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 });
+    }
+
+    isDragging.value = false;
+};
+
+// Remove field from row
+const removeFieldFromRow = ({ rowIndex, slotIndex }) => {
+    const row = rows.value[rowIndex];
+    row.fields.splice(slotIndex, 1);
+
+    // Remove empty rows (except keep at least one)
+    if (row.fields.length === 0 && rows.value.length > 1) {
+        // Only remove if it's not the last row
+        if (rowIndex < rows.value.length - 1) {
+            rows.value.splice(rowIndex, 1);
+        }
+    }
+
+    // Deselect if this field was selected
+    if (selectedFieldIndex.value?.rowIndex === rowIndex &&
+        selectedFieldIndex.value?.slotIndex === slotIndex) {
+        selectedFieldIndex.value = null;
+    }
+};
+
+// Select field in row
+const selectFieldInRow = ({ rowIndex, slotIndex }) => {
+    console.log('[selectFieldInRow] Called with:', { rowIndex, slotIndex });
+    console.log('[selectFieldInRow] Field to select:', rows.value[rowIndex]?.fields[slotIndex]);
+
+    selectedFieldIndex.value = { rowIndex, slotIndex };
+    selectedRowIndex.value = null;
+    selectedNestedPath.value = null;
+    showFormSettings.value = false;
+
+    console.log('[selectFieldInRow] selectedFieldIndex set to:', selectedFieldIndex.value);
+};
+
+const selectRow = (rowIndex) => {
+    console.log('[selectRow] Called with:', rowIndex);
+
+    selectedRowIndex.value = rowIndex;
+    selectedFieldIndex.value = null;
+    selectedNestedPath.value = null;
+    showFormSettings.value = false;
+
+    console.log('[selectRow] selectedRowIndex set to:', selectedRowIndex.value);
+};
+
+const onSubRowDrop = ({ event, rowIndex, subRowIndex }) => {
+    event.stopPropagation();
+    const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
+
+    const newField = getDefaultFieldProperties(fieldType);
+    const row = rows.value[rowIndex];
+
+    if (row.subRows && row.subRows[subRowIndex]) {
+        if (!row.subRows[subRowIndex].fields) {
+            row.subRows[subRowIndex].fields = [];
+        }
+        row.subRows[subRowIndex].fields.push(newField);
+    }
+
+    isDragging.value = false;
+};
+
+const removeSubRowField = ({ rowIndex, subRowIndex, fieldIndex }) => {
+    const row = rows.value[rowIndex];
+    if (row.subRows && row.subRows[subRowIndex]) {
+        row.subRows[subRowIndex].fields.splice(fieldIndex, 1);
+    }
+};
+
+const selectSubRowField = ({ rowIndex, subRowIndex, fieldIndex }) => {
+    // For now, just select the row
+    selectedRowIndex.value = rowIndex;
+    selectedFieldIndex.value = null;
+    selectedNestedPath.value = null;
+    showFormSettings.value = false;
+};
+
+// Canvas-wide drop handlers
+const handleCanvasDragOver = (event) => {
+    isDragging.value = true;
+};
+
+const handleCanvasDragLeave = (event) => {
+    // Only set to false if leaving the canvas completely
+    if (event.target.classList.contains('min-h-[500px]')) {
+        isDragging.value = false;
+    }
+};
+
+const handleCanvasDrop = (event) => {
+    event.stopPropagation();
+
+    // Get the field type from drag data
+    const fieldTypeData = event.dataTransfer.getData('fieldType');
+    if (!fieldTypeData) {
+        isDragging.value = false;
+        return;
+    }
+
+    const fieldType = JSON.parse(fieldTypeData);
+
+    // Create new field with default properties
+    const newField = getDefaultFieldProperties(fieldType);
+
+    // Find the last row with available space or create a new one
+    let targetRow = null;
+    let targetRowIndex = -1;
+
+    // Check if the last row has space
+    const lastRowIndex = rows.value.length - 1;
+    const lastRow = rows.value[lastRowIndex];
+
+    if (lastRow && lastRow.fields.length === 0) {
+        // Last row is empty, use it
+        targetRow = lastRow;
+        targetRowIndex = lastRowIndex;
+    } else {
+        // Create a new row
+        const newRow = { id: rowIdCounter++, fields: [] };
+        rows.value.push(newRow);
+        targetRow = newRow;
+        targetRowIndex = rows.value.length - 1;
+    }
+
+    // Add field to the row (always at the first position for canvas drops)
+    targetRow.fields.push(newField);
+
+    // Auto-select the newly added field
+    selectedFieldIndex.value = { rowIndex: targetRowIndex, slotIndex: 0 };
+    selectedNestedPath.value = null;
+    showFormSettings.value = false;
+
+    // Always ensure there's an empty row at the end
+    const lastRowAfterDrop = rows.value[rows.value.length - 1];
+    if (lastRowAfterDrop.fields.length > 0) {
+        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 });
+    }
+
+    isDragging.value = false;
+};
+
 // Field management handlers (use composable)
+const updateFieldInRow = (updates) => {
+    if (selectedFieldIndex.value !== null && typeof selectedFieldIndex.value === 'object') {
+        const { rowIndex, slotIndex } = selectedFieldIndex.value;
+        const row = rows.value[rowIndex];
+        if (row && row.fields[slotIndex]) {
+            const field = row.fields[slotIndex];
+
+            // Update the field with new values
+            Object.assign(field, updates);
+        }
+    }
+};
+
+const updateRow = (updates) => {
+    if (selectedRowIndex.value !== null) {
+        const row = rows.value[selectedRowIndex.value];
+        if (row) {
+            const oldGridRows = row.gridRows || 1;
+            const newGridRows = updates.gridRows;
+
+            // Update the row with new values
+            Object.assign(row, updates);
+
+            // Handle gridRows change - create sub-rows displayed side-by-side
+            if (newGridRows && newGridRows !== oldGridRows) {
+                if (!row.subRows) {
+                    row.subRows = [];
+                }
+
+                if (newGridRows > oldGridRows) {
+                    // Add more sub-rows
+                    const rowsToAdd = newGridRows - row.subRows.length;
+                    for (let i = 0; i < rowsToAdd; i++) {
+                        row.subRows.push({
+                            fields: [],
+                            gridColumns: row.gridColumns || 1
+                        });
+                    }
+                } else if (newGridRows < row.subRows.length) {
+                    // Remove extra sub-rows
+                    row.subRows.splice(newGridRows);
+                }
+
+                // If gridRows is 1, remove subRows structure
+                if (newGridRows === 1) {
+                    delete row.subRows;
+                }
+            }
+        }
+    }
+};
+
 const selectField = (index, nestedPath = null) => {
     console.log('selectField called:', { index, nestedPath, fieldType: fields.value[index]?.type });
     selectFieldComposable(selectedFieldIndex, selectedNestedPath, showFormSettings, index, nestedPath);
@@ -307,11 +571,23 @@ const removeField = (index) => {
 };
 
 const addOption = () => {
-    addOptionComposable(selectedField);
+    if (selectedFieldIndex.value !== null && typeof selectedFieldIndex.value === 'object') {
+        const { rowIndex, slotIndex } = selectedFieldIndex.value;
+        const field = rows.value[rowIndex]?.fields[slotIndex];
+        if (field && field.options) {
+            field.options.push('New Option');
+        }
+    }
 };
 
 const removeOption = (index) => {
-    removeOptionComposable(selectedField, index);
+    if (selectedFieldIndex.value !== null && typeof selectedFieldIndex.value === 'object') {
+        const { rowIndex, slotIndex } = selectedFieldIndex.value;
+        const field = rows.value[rowIndex]?.fields[slotIndex];
+        if (field && field.options) {
+            field.options.splice(index, 1);
+        }
+    }
 };
 
 // Nested drop handler (use composable)
@@ -351,7 +627,7 @@ const updateTableColumns = () => {
 
 // Save form handler (use composable)
 const saveForm = () => {
-    saveFormComposable(props.form.id, formData, fields, saving);
+    saveFormComposable(props.form.id, formData, flattenedFields, saving);
 };
 
 const previewForm = () => {
@@ -407,7 +683,7 @@ ${indent}</div>`;
 };
 
 const generateVueCode = () => {
-    const fieldsHTML = fields.value.map(field => {
+    const fieldsHTML = flattenedFields.value.map(field => {
         let component = '';
 
         // Handle structure fields
@@ -580,7 +856,7 @@ const handleSubmit = () => {
 };
 
 const generateHTMLCode = () => {
-    const fieldsHTML = fields.value.map(field => {
+    const fieldsHTML = flattenedFields.value.map(field => {
         let input = '';
 
         // Handle structure fields
@@ -720,7 +996,7 @@ ${fieldsHTML}
 };
 
 const generateBladeCode = () => {
-    const fieldsHTML = fields.value.map(field => {
+    const fieldsHTML = flattenedFields.value.map(field => {
         let input = '';
 
         // Handle structure fields (same as HTML since Blade is HTML with PHP)
@@ -854,7 +1130,7 @@ ${fieldsHTML}
 };
 
 const generateValidationRules = () => {
-    const rules = fields.value.map(field => {
+    const rules = flattenedFields.value.map(field => {
         const validationRules = [];
 
         if (field.is_required) {
