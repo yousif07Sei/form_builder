@@ -79,9 +79,6 @@
                         <span v-else-if="selectedRow.fields.length === 3">
                             Left = Field 1 | Right = Field 3 (from right) | Middle auto-adjusts
                         </span>
-                        <span v-else-if="selectedRow.fields.length === 4">
-                            Left = Field 1 | Right = Field 4 (from right) | Fields 2&3 split middle
-                        </span>
                     </small>
                 </div>
 
@@ -338,19 +335,6 @@ const sliderValue = computed(() => {
         });
 
         return [field1Width, rightHandle];
-    } else if (fieldCount === 4) {
-        const field1Width = getFieldWidth(0);
-        const field4Width = getFieldWidth(3);
-        const rightHandle = 100 - field4Width;
-
-        console.log('[SettingsPanel] 4-field slider values:', {
-            field1Width,
-            field4Width,
-            leftHandle: field1Width,
-            rightHandle
-        });
-
-        return [field1Width, rightHandle];
     }
 
     return [0, 100];
@@ -384,18 +368,6 @@ const onSliderChange = (newValue) => {
         updatedRow.fields[0].customWidth = leftHandle;
         updatedRow.fields[1].customWidth = rightHandle - leftHandle;
         updatedRow.fields[2].customWidth = field3Width;
-    } else if (fieldCount === 4) {
-        // Range slider - two handles
-        const [leftHandle, rightHandle] = newValue;
-        // Left handle = Field 1 width
-        // Right handle = where Field 4 starts, so Field 4 width = 100 - rightHandle
-        // Fields 2 and 3 split the middle space equally
-        const field4Width = 100 - rightHandle;
-        const middleSpace = rightHandle - leftHandle;
-        updatedRow.fields[0].customWidth = leftHandle;
-        updatedRow.fields[1].customWidth = middleSpace / 2;
-        updatedRow.fields[2].customWidth = middleSpace / 2;
-        updatedRow.fields[3].customWidth = field4Width;
     }
 
     emit('update:row', updatedRow);

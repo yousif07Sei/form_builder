@@ -60,7 +60,7 @@
                                     :key="row.id"
                                     :row="row"
                                     :row-index="rowIndex"
-                                    :max-slots="4"
+                                    :max-slots="3"
                                     :selected-field-index="selectedFieldIndex"
                                     :selected-row-index="selectedRowIndex"
                                     :get-field-component="getFieldComponent"
@@ -328,9 +328,9 @@ const onRowDrop = ({ event, rowIndex, slotIndex }) => {
     // Add field to the specific slot in the row
     const row = rows.value[rowIndex];
 
-    // Enforce maximum of 4 fields per row
-    if (row.fields.length >= 4) {
-        console.warn('Maximum 4 fields per row reached');
+    // Enforce maximum of 3 fields per row
+    if (row.fields.length >= 3) {
+        console.warn('Maximum 3 fields per row reached');
         isDragging.value = false;
         return;
     }
@@ -463,9 +463,9 @@ const handleCanvasDrop = (event) => {
         targetRowIndex = rows.value.length - 1;
     }
 
-    // Enforce maximum of 4 fields per row
-    if (targetRow.fields.length >= 4) {
-        console.warn('Maximum 4 fields per row reached');
+    // Enforce maximum of 3 fields per row
+    if (targetRow.fields.length >= 3) {
+        console.warn('Maximum 3 fields per row reached');
         isDragging.value = false;
         return;
     }
