@@ -1,80 +1,7 @@
 <template>
     <div class="form-row mb-4">
-        <!-- Container with sub-rows (displayed side-by-side) -->
+        <!-- Row container -->
         <div
-            v-if="row.subRows && row.subRows.length > 0"
-            class="flex gap-2 p-2 border-2 border-dashed rounded-lg transition-all relative cursor-pointer hover:border-primary-400"
-            :class="{
-                'border-gray-300 dark:border-gray-600 bg-gray-50/30 dark:bg-gray-800/30': !hasAnyFields,
-                'border-primary-300 dark:border-primary-600 bg-white dark:bg-gray-900': hasAnyFields,
-                'ring-2 ring-purple-500 border-purple-500': isRowSelected
-            }"
-            @click.self="handleRowClick"
-        >
-            <!-- Each sub-row displayed side-by-side -->
-            <div
-                v-for="(subRow, subRowIndex) in row.subRows"
-                :key="subRowIndex"
-                class="flex-1 flex gap-2 min-h-[80px] p-2 border border-gray-200 dark:border-gray-700 rounded"
-                @dragover.prevent
-                @drop="handleSubRowDrop($event, subRowIndex)"
-            >
-                <!-- Fields in sub-row -->
-                <template v-if="subRow.fields && subRow.fields.length > 0">
-                    <div
-                        v-for="(field, fieldIndex) in subRow.fields"
-                        :key="field.tempId || field.id"
-                        class="relative group"
-                        :style="{ width: getSubRowFieldWidth(subRow, fieldIndex) + '%' }"
-                    >
-                        <!-- Delete Button -->
-                        <div class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <Button
-                                icon="pi pi-trash"
-                                severity="danger"
-                                text
-                                rounded
-                                size="small"
-                                @click.stop="$emit('remove-subrow-field', { rowIndex, subRowIndex, fieldIndex })"
-                            />
-                        </div>
-
-                        <!-- Field Content -->
-                        <div
-                            class="h-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all overflow-hidden cursor-pointer hover:border-primary-400 dark:hover:border-primary-500"
-                            @click.stop="$emit('select-subrow-field', { rowIndex, subRowIndex, fieldIndex })"
-                        >
-                            <div class="w-full overflow-hidden pointer-events-none">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {{ field.label }}
-                                    <span v-if="field.is_required" class="text-red-500">*</span>
-                                </label>
-                                <component
-                                    :is="getFieldComponent(field.type)"
-                                    v-bind="getFieldProps(field)"
-                                    disabled
-                                />
-                                <small v-if="field.help_text" class="text-gray-500 dark:text-gray-400 block mt-1">
-                                    {{ field.help_text }}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Empty state for sub-row -->
-                <div v-else class="flex-1 flex items-center justify-center pointer-events-none">
-                    <div class="text-center py-4">
-                        <i class="pi pi-plus-circle text-xl text-gray-400 dark:text-gray-500 mb-1"></i>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Drop field here</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Regular single row (no sub-rows) -->
-        <div
-            v-else
             class="flex gap-2 min-h-[80px] p-2 border-2 border-dashed rounded-lg transition-all relative cursor-pointer hover:border-primary-400"
             :class="{
                 'border-gray-300 dark:border-gray-600 bg-gray-50/30 dark:bg-gray-800/30': row.fields.length === 0,
@@ -142,19 +69,15 @@
                     </div>
                 </div>
 
-                <!-- Empty slot for additional field (if there's space) - invisible but functional -->
+                <!-- Invisible drop zone for additional field (only appears when dragging) -->
                 <div
-                    v-if="getTotalWidth() < 100"
-                    class="transition-all"
-                    :class="{
-                        'bg-primary-50 dark:bg-primary-900/20 border-2 border-dashed border-primary-400 dark:border-primary-500 rounded-lg': isDraggingOverEmpty
-                    }"
-                    :style="{ width: (100 - getTotalWidth()) + '%' }"
-                    @dragover.prevent="isDraggingOverEmpty = true"
-                    @dragleave="isDraggingOverEmpty = false"
-                    @drop="handleEmptySlotDrop"
+                    v-if="row.fields.length < maxSlots && isDraggingOverEmpty"
+                    class="transition-all min-w-[80px] bg-primary-50 dark:bg-primary-900/20 border-2 border-dashed border-primary-400 dark:border-primary-500 rounded-lg"
+                    :style="{ flexShrink: 0 }"
                 >
-                    <!-- Empty - only show visual feedback when dragging -->
+                    <div class="flex items-center justify-center h-full py-4">
+                        <i class="pi pi-plus text-primary-500"></i>
+                    </div>
                 </div>
             </template>
         </div>
@@ -176,7 +99,7 @@ const props = defineProps({
     },
     maxSlots: {
         type: Number,
-        default: 3
+        default: 4
     },
     selectedFieldIndex: {
         type: Object,
@@ -196,25 +119,33 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['drop', 'remove-field', 'select-field', 'select-row', 'remove-subrow-field', 'select-subrow-field', 'drop-subrow']);
+const emit = defineEmits(['drop', 'remove-field', 'select-field', 'select-row']);
 
 const isDraggingOverRow = ref(false);
 const isDraggingOverEmpty = ref(false);
 
-// Get field width based on customWidth or row's gridColumns setting
+// Get field width based on customWidth or equal distribution
 const getFieldWidth = (index) => {
     const field = props.row.fields[index];
 
     // If custom width is set, use it
-    if (field.customWidth && field.customWidth > 0) {
+    if (field.customWidth !== undefined && field.customWidth > 0) {
         return field.customWidth;
     }
 
-    // Otherwise calculate equal width based on row's grid columns
-    const gridColumns = props.row.gridColumns || 1;
-    const equalWidth = 100 / gridColumns;
+    // Otherwise calculate equal width based on number of fields
+    // Count fields without custom widths
+    const fieldsWithCustomWidth = props.row.fields.filter(f => f.customWidth !== undefined && f.customWidth > 0);
+    const totalCustomWidth = fieldsWithCustomWidth.reduce((sum, f) => sum + (f.customWidth || 0), 0);
+    const fieldsWithoutCustomWidth = props.row.fields.length - fieldsWithCustomWidth.length;
 
-    return equalWidth;
+    if (fieldsWithoutCustomWidth > 0) {
+        const remainingWidth = 100 - totalCustomWidth;
+        return remainingWidth / fieldsWithoutCustomWidth;
+    }
+
+    // Fallback to equal distribution
+    return 100 / props.row.fields.length;
 };
 
 // Check if this row is selected
@@ -230,20 +161,30 @@ const getTotalWidth = () => {
 };
 
 const handleRowDragOver = (event) => {
+    // Allow drag over if row is empty OR has space for more fields
     if (props.row.fields.length === 0) {
         isDraggingOverRow.value = true;
+    } else if (props.row.fields.length < props.maxSlots) {
+        isDraggingOverEmpty.value = true;
     }
 };
 
 const handleRowDragLeave = (event) => {
     isDraggingOverRow.value = false;
+    isDraggingOverEmpty.value = false;
 };
 
 const handleRowDrop = (event) => {
+    // Handle drop based on whether row is empty or has fields
     if (props.row.fields.length === 0) {
         event.stopPropagation();
         emit('drop', { event, rowIndex: props.rowIndex, slotIndex: 0 });
         isDraggingOverRow.value = false;
+    } else if (props.row.fields.length < props.maxSlots) {
+        // Add to end of row
+        event.stopPropagation();
+        emit('drop', { event, rowIndex: props.rowIndex, slotIndex: props.row.fields.length });
+        isDraggingOverEmpty.value = false;
     }
 };
 
@@ -265,33 +206,6 @@ const handleFieldClick = (slotIndex) => {
 const handleRowClick = () => {
     emit('select-row', props.rowIndex);
 };
-
-const handleSubRowDrop = (event, subRowIndex) => {
-    event.stopPropagation();
-    emit('drop-subrow', { event, rowIndex: props.rowIndex, subRowIndex });
-};
-
-const getSubRowFieldWidth = (subRow, fieldIndex) => {
-    const field = subRow.fields[fieldIndex];
-
-    // If custom width is set, use it
-    if (field.customWidth && field.customWidth > 0) {
-        return field.customWidth;
-    }
-
-    // Otherwise calculate equal width based on sub-row's grid columns
-    const gridColumns = subRow.gridColumns || 1;
-    const equalWidth = 100 / gridColumns;
-
-    return equalWidth;
-};
-
-const hasAnyFields = computed(() => {
-    if (props.row.subRows && props.row.subRows.length > 0) {
-        return props.row.subRows.some(subRow => subRow.fields && subRow.fields.length > 0);
-    }
-    return false;
-});
 </script>
 
 <style scoped>

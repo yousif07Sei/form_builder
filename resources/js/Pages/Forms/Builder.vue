@@ -60,17 +60,14 @@
                                     :key="row.id"
                                     :row="row"
                                     :row-index="rowIndex"
-                                    :max-slots="3"
+                                    :max-slots="4"
                                     :selected-field-index="selectedFieldIndex"
                                     :selected-row-index="selectedRowIndex"
                                     :get-field-component="getFieldComponent"
                                     :get-field-props="getFieldProps"
                                     @drop="onRowDrop"
-                                    @drop-subrow="onSubRowDrop"
                                     @remove-field="removeFieldFromRow"
-                                    @remove-subrow-field="removeSubRowField"
                                     @select-field="selectFieldInRow"
-                                    @select-subrow-field="selectSubRowField"
                                     @select-row="selectRow"
                                 />
                             </div>
@@ -155,7 +152,7 @@
                         class="absolute top-2 right-2"
                         size="small"
                         @click="copyToClipboard"
-                        v-tooltip.left="'Copy to clipboard'"
+                        title="Copy to clipboard"
                     />
                 </div>
             </div>
@@ -234,7 +231,7 @@ console.log('[Builder] Component initialized successfully');
 // Row-based canvas system
 let rowIdCounter = 0;
 const rows = ref([
-    { id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 }
+    { id: rowIdCounter++, fields: [], gridColumns: 1 }
 ]);
 
 const selectedFieldIndex = ref(null); // Now stores { rowIndex, slotIndex }
@@ -331,19 +328,25 @@ const onRowDrop = ({ event, rowIndex, slotIndex }) => {
     // Add field to the specific slot in the row
     const row = rows.value[rowIndex];
 
-    // Calculate remaining width in the row
-    const totalUsedWidth = row.fields.reduce((sum, field) => {
-        const fieldWidth = field.customWidth || (100 / (field.gridColumns || 1));
-        return sum + fieldWidth;
-    }, 0);
-
-    const remainingWidth = 100 - totalUsedWidth;
-
-    // If there's remaining space, set the new field to fill it
-    if (remainingWidth > 0 && remainingWidth < 100) {
-        newField.customWidth = remainingWidth;
-        newField.gridColumns = 1; // Set to 1 column since we're using custom width
+    // Enforce maximum of 4 fields per row
+    if (row.fields.length >= 4) {
+        console.warn('Maximum 4 fields per row reached');
+        isDragging.value = false;
+        return;
     }
+
+    // When adding a new field, redistribute all fields equally
+    // This ensures fields always fit in the row
+    const newFieldCount = row.fields.length + 1; // Count including the new field
+    const equalWidth = 100 / newFieldCount;
+
+    // Set all existing fields to equal width
+    row.fields.forEach(field => {
+        field.customWidth = equalWidth;
+    });
+
+    // Set the new field to equal width
+    newField.customWidth = equalWidth;
 
     // Insert field at the correct position
     if (slotIndex >= row.fields.length) {
@@ -354,7 +357,7 @@ const onRowDrop = ({ event, rowIndex, slotIndex }) => {
 
     // Auto-add new empty row if current row has fields and is the last row
     if (row.fields.length > 0 && rowIndex === rows.value.length - 1) {
-        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 });
+        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1 });
     }
 
     isDragging.value = false;
@@ -404,37 +407,6 @@ const selectRow = (rowIndex) => {
     console.log('[selectRow] selectedRowIndex set to:', selectedRowIndex.value);
 };
 
-const onSubRowDrop = ({ event, rowIndex, subRowIndex }) => {
-    event.stopPropagation();
-    const fieldType = JSON.parse(event.dataTransfer.getData('fieldType'));
-
-    const newField = getDefaultFieldProperties(fieldType);
-    const row = rows.value[rowIndex];
-
-    if (row.subRows && row.subRows[subRowIndex]) {
-        if (!row.subRows[subRowIndex].fields) {
-            row.subRows[subRowIndex].fields = [];
-        }
-        row.subRows[subRowIndex].fields.push(newField);
-    }
-
-    isDragging.value = false;
-};
-
-const removeSubRowField = ({ rowIndex, subRowIndex, fieldIndex }) => {
-    const row = rows.value[rowIndex];
-    if (row.subRows && row.subRows[subRowIndex]) {
-        row.subRows[subRowIndex].fields.splice(fieldIndex, 1);
-    }
-};
-
-const selectSubRowField = ({ rowIndex, subRowIndex, fieldIndex }) => {
-    // For now, just select the row
-    selectedRowIndex.value = rowIndex;
-    selectedFieldIndex.value = null;
-    selectedNestedPath.value = null;
-    showFormSettings.value = false;
-};
 
 // Canvas-wide drop handlers
 const handleCanvasDragOver = (event) => {
@@ -477,10 +449,17 @@ const handleCanvasDrop = (event) => {
         targetRowIndex = lastRowIndex;
     } else {
         // Create a new row
-        const newRow = { id: rowIdCounter++, fields: [] };
+        const newRow = { id: rowIdCounter++, fields: [], gridColumns: 1 };
         rows.value.push(newRow);
         targetRow = newRow;
         targetRowIndex = rows.value.length - 1;
+    }
+
+    // Enforce maximum of 4 fields per row
+    if (targetRow.fields.length >= 4) {
+        console.warn('Maximum 4 fields per row reached');
+        isDragging.value = false;
+        return;
     }
 
     // Add field to the row (always at the first position for canvas drops)
@@ -494,7 +473,7 @@ const handleCanvasDrop = (event) => {
     // Always ensure there's an empty row at the end
     const lastRowAfterDrop = rows.value[rows.value.length - 1];
     if (lastRowAfterDrop.fields.length > 0) {
-        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1, gridRows: 1 });
+        rows.value.push({ id: rowIdCounter++, fields: [], gridColumns: 1 });
     }
 
     isDragging.value = false;
@@ -515,40 +494,20 @@ const updateFieldInRow = (updates) => {
 };
 
 const updateRow = (updates) => {
+    console.log('[Builder] updateRow called with:', updates);
+    console.log('[Builder] updates.fields:', updates.fields);
+    console.log('[Builder] selectedRowIndex:', selectedRowIndex.value);
+
     if (selectedRowIndex.value !== null) {
         const row = rows.value[selectedRowIndex.value];
         if (row) {
-            const oldGridRows = row.gridRows || 1;
-            const newGridRows = updates.gridRows;
+            console.log('[Builder] Updating row at index:', selectedRowIndex.value);
+            console.log('[Builder] Before update fields:', row.fields.map(f => ({ label: f.label, customWidth: f.customWidth })));
 
-            // Update the row with new values
-            Object.assign(row, updates);
+            // Update the row - use Vue.set or direct replacement for reactivity
+            rows.value[selectedRowIndex.value] = { ...row, ...updates };
 
-            // Handle gridRows change - create sub-rows displayed side-by-side
-            if (newGridRows && newGridRows !== oldGridRows) {
-                if (!row.subRows) {
-                    row.subRows = [];
-                }
-
-                if (newGridRows > oldGridRows) {
-                    // Add more sub-rows
-                    const rowsToAdd = newGridRows - row.subRows.length;
-                    for (let i = 0; i < rowsToAdd; i++) {
-                        row.subRows.push({
-                            fields: [],
-                            gridColumns: row.gridColumns || 1
-                        });
-                    }
-                } else if (newGridRows < row.subRows.length) {
-                    // Remove extra sub-rows
-                    row.subRows.splice(newGridRows);
-                }
-
-                // If gridRows is 1, remove subRows structure
-                if (newGridRows === 1) {
-                    delete row.subRows;
-                }
-            }
+            console.log('[Builder] After update fields:', rows.value[selectedRowIndex.value].fields.map(f => ({ label: f.label, customWidth: f.customWidth })));
         }
     }
 };

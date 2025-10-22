@@ -47,63 +47,54 @@
 
         <!-- Row Settings Content -->
         <div v-else-if="selectedRow" class="p-4 space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Grid Columns
+            <!-- Show field width controls if row has fields -->
+            <div v-if="selectedRow.fields && selectedRow.fields.length > 0">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Row Layout - {{ selectedRow.fields.length }} field{{ selectedRow.fields.length !== 1 ? 's' : '' }}
                 </label>
-                <div class="flex gap-2">
-                    <div
-                        v-for="col in [1, 2, 3, 4]"
-                        :key="col"
-                        class="flex items-center"
-                    >
-                        <RadioButton
-                            :inputId="`rowGridCol${col}`"
-                            name="rowGridColumns"
-                            :value="col"
-                            :model-value="selectedRow.gridColumns || 1"
-                            @update:model-value="updateRow('gridColumns', $event)"
-                        />
-                        <label
-                            :for="`rowGridCol${col}`"
-                            class="ml-1 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                        >
-                            {{ col }}
-                        </label>
+
+                <!-- Field width breakdown -->
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-3 space-y-1">
+                    <div v-for="(field, index) in selectedRow.fields" :key="index">
+                        Field {{ index + 1 }} ({{ field.label }}): <span class="font-medium">{{ getFieldWidth(index) }}%</span>
                     </div>
                 </div>
-                <small class="text-gray-500 dark:text-gray-400 block mt-1">
-                    Number of equal-width columns in this row
-                </small>
+
+                <!-- Range Slider for all field counts -->
+                <div>
+                    <Slider
+                        :key="`slider-${selectedRowIndex}-${selectedRow.fields.length}`"
+                        :modelValue="sliderValue"
+                        @update:modelValue="onSliderChange"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        range
+                        class="w-full mb-2"
+                    />
+                    <small class="text-gray-500 dark:text-gray-400 block">
+                        <span v-if="selectedRow.fields.length === 1">
+                            Drag right handle to adjust field width
+                        </span>
+                        <span v-else-if="selectedRow.fields.length === 2">
+                            Left handle = Field 1 width | Right handle = Field 2 width (from right)
+                        </span>
+                        <span v-else-if="selectedRow.fields.length === 3">
+                            Left = Field 1 | Right = Field 3 (from right) | Middle auto-adjusts
+                        </span>
+                        <span v-else-if="selectedRow.fields.length === 4">
+                            Left = Field 1 | Right = Field 4 (from right) | Fields 2&3 split middle
+                        </span>
+                    </small>
+                </div>
             </div>
 
-            <div>
+            <div v-else>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Grid Rows
+                    Empty Row
                 </label>
-                <div class="flex gap-2">
-                    <div
-                        v-for="rowCount in [1, 2, 3, 4]"
-                        :key="rowCount"
-                        class="flex items-center"
-                    >
-                        <RadioButton
-                            :inputId="`gridRow${rowCount}`"
-                            name="gridRows"
-                            :value="rowCount"
-                            :model-value="selectedRow.gridRows || 1"
-                            @update:model-value="updateRow('gridRows', $event)"
-                        />
-                        <label
-                            :for="`gridRow${rowCount}`"
-                            class="ml-1 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                        >
-                            {{ rowCount }}
-                        </label>
-                    </div>
-                </div>
                 <small class="text-gray-500 dark:text-gray-400 block mt-1">
-                    Split this row into multiple rows
+                    Add fields to this row to adjust their widths
                 </small>
             </div>
         </div>
@@ -230,7 +221,7 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import InputSwitch from 'primevue/inputswitch';
-import RadioButton from 'primevue/radiobutton';
+import Slider from 'primevue/slider';
 import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
 import Accordion from 'primevue/accordion';
@@ -277,6 +268,138 @@ for (let i = 25; i <= 100; i += 5) {
         value: i
     });
 }
+
+// Get field width for a specific field
+const getFieldWidth = (index) => {
+    if (!props.selectedRow?.fields || !props.selectedRow.fields[index]) {
+        return 25;
+    }
+
+    const field = props.selectedRow.fields[index];
+    const totalFields = props.selectedRow.fields.length;
+
+    // If custom width is set, use it
+    if (field.customWidth !== undefined && field.customWidth > 0) {
+        return field.customWidth;
+    }
+
+    // Otherwise calculate from all fields' widths
+    // If some fields have customWidth, calculate remaining for fields without it
+    const fieldsWithWidth = props.selectedRow.fields.filter(f => f.customWidth !== undefined && f.customWidth > 0);
+    const totalCustomWidth = fieldsWithWidth.reduce((sum, f) => sum + (f.customWidth || 0), 0);
+    const fieldsWithoutWidth = totalFields - fieldsWithWidth.length;
+
+    if (fieldsWithoutWidth > 0) {
+        const remainingWidth = 100 - totalCustomWidth;
+        return Math.floor(remainingWidth / fieldsWithoutWidth);
+    }
+
+    // Fallback: equal distribution
+    return Math.floor(100 / totalFields);
+};
+
+// Compute slider value from field widths
+const sliderValue = computed(() => {
+    if (!props.selectedRow?.fields) {
+        return [0, 100];
+    }
+
+    const fieldCount = props.selectedRow.fields.length;
+
+    if (fieldCount === 1) {
+        // For single field, right handle shows the field's width
+        const field1Width = getFieldWidth(0);
+        return [0, field1Width];
+    } else if (fieldCount === 2) {
+        // Left handle = Field 1 width
+        // Right handle = where Field 2 starts (so Field 2 width is adjustable from right)
+        const field1Width = getFieldWidth(0);
+        const field2Width = getFieldWidth(1);
+        const rightHandle = 100 - field2Width;
+
+        console.log('[SettingsPanel] 2-field slider values:', {
+            field1Width,
+            field2Width,
+            leftHandle: field1Width,
+            rightHandle
+        });
+
+        return [field1Width, rightHandle];
+    } else if (fieldCount === 3) {
+        const field1Width = getFieldWidth(0);
+        const field3Width = getFieldWidth(2);
+        const rightHandle = 100 - field3Width;
+
+        console.log('[SettingsPanel] 3-field slider values:', {
+            field1Width,
+            field3Width,
+            leftHandle: field1Width,
+            rightHandle,
+            field2Width: rightHandle - field1Width
+        });
+
+        return [field1Width, rightHandle];
+    } else if (fieldCount === 4) {
+        const field1Width = getFieldWidth(0);
+        const field4Width = getFieldWidth(3);
+        const rightHandle = 100 - field4Width;
+
+        console.log('[SettingsPanel] 4-field slider values:', {
+            field1Width,
+            field4Width,
+            leftHandle: field1Width,
+            rightHandle
+        });
+
+        return [field1Width, rightHandle];
+    }
+
+    return [0, 100];
+});
+
+// Handle slider change
+const onSliderChange = (newValue) => {
+    if (!props.selectedRow?.fields) {
+        return;
+    }
+
+    const fieldCount = props.selectedRow.fields.length;
+    const [leftHandle, rightHandle] = newValue;
+
+    const updatedRow = { ...props.selectedRow };
+    updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
+
+    if (fieldCount === 1) {
+        updatedRow.fields[0].customWidth = rightHandle;
+    } else if (fieldCount === 2) {
+        // Left handle = Field 1 width
+        // Right handle = where Field 2 starts (from left), so Field 2 width = 100 - rightHandle
+        const field2Width = 100 - rightHandle;
+        updatedRow.fields[0].customWidth = leftHandle;
+        updatedRow.fields[1].customWidth = field2Width;
+    } else if (fieldCount === 3) {
+        // Left handle = Field 1 width
+        // Right handle = where Field 3 starts, so Field 3 width = 100 - rightHandle
+        // Field 2 = middle space
+        const field3Width = 100 - rightHandle;
+        updatedRow.fields[0].customWidth = leftHandle;
+        updatedRow.fields[1].customWidth = rightHandle - leftHandle;
+        updatedRow.fields[2].customWidth = field3Width;
+    } else if (fieldCount === 4) {
+        // Left handle = Field 1 width
+        // Right handle = where Field 4 starts, so Field 4 width = 100 - rightHandle
+        // Fields 2 and 3 split the middle space equally
+        const field4Width = 100 - rightHandle;
+        const middleSpace = rightHandle - leftHandle;
+        updatedRow.fields[0].customWidth = leftHandle;
+        updatedRow.fields[1].customWidth = middleSpace / 2;
+        updatedRow.fields[2].customWidth = middleSpace / 2;
+        updatedRow.fields[3].customWidth = field4Width;
+    }
+
+    emit('update:row', updatedRow);
+};
+
 
 const handleClose = () => {
     emit('close');
