@@ -62,22 +62,27 @@
 
                 <!-- Slider - Only show for 2+ fields -->
                 <div v-if="selectedRow.fields.length >= 2">
+                    <!-- Debug info -->
+                    <div class="text-xs text-gray-400 mb-1">
+                        Field widths: {{ selectedRow.fields.map(f => Math.round(f.customWidth) + '%').join(', ') }}
+                    </div>
                     <Slider
                         :key="`slider-${selectedRowIndex}-${selectedRow.fields.length}`"
                         :modelValue="sliderValue"
                         @update:modelValue="onSliderChange"
-                        :min="0"
-                        :max="100"
+                        @slideend="onSliderEnd"
+                        :min="selectedRow.fields.length === 3 ? 20 : 20"
+                        :max="selectedRow.fields.length === 3 ? 80 : 80"
                         :step="5"
                         :range="selectedRow.fields.length >= 3"
                         class="w-full mb-2"
                     />
                     <small class="text-gray-500 dark:text-gray-400 block">
                         <span v-if="selectedRow.fields.length === 2">
-                            Drag handle to adjust field widths
+                            Drag handle to adjust field widths (min 20% each)
                         </span>
                         <span v-else-if="selectedRow.fields.length === 3">
-                            Left = Field 1 | Right = Field 3 (from right) | Middle auto-adjusts
+                            Left = Field 1 | Right = Field 3 (from right) | Middle auto-adjusts (min 20% each)
                         </span>
                     </small>
                 </div>
@@ -261,9 +266,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update:formData', 'update:field', 'update:row', 'add-tab', 'remove-tab', 'update-table-rows', 'update-table-columns', 'add-option', 'remove-option']);
 
-// Generate width options from 25% to 100% in 5% increments
+// Generate width options from 20% to 100% in 5% increments
 const widthOptions = [];
-for (let i = 25; i <= 100; i += 5) {
+for (let i = 20; i <= 100; i += 5) {
     widthOptions.push({
         label: `${i}%`,
         value: i
@@ -299,6 +304,43 @@ const getFieldWidth = (index) => {
     return Math.floor(100 / totalFields);
 };
 
+// Minimum field width (20%)
+const MIN_FIELD_WIDTH = 20;
+
+// Calculate minimum slider value based on field count
+const minSliderValue = computed(() => {
+    if (!props.selectedRow?.fields) return MIN_FIELD_WIDTH;
+
+    const fieldCount = props.selectedRow.fields.length;
+
+    if (fieldCount === 2) {
+        // For 2 fields with single handle: minimum is 20 (Field 1 can't be less than 20%)
+        return MIN_FIELD_WIDTH;
+    } else if (fieldCount === 3) {
+        // For 3 fields with range: left handle minimum is 20
+        return MIN_FIELD_WIDTH;
+    }
+
+    return 0;
+});
+
+// Calculate maximum slider value based on field count
+const maxSliderValue = computed(() => {
+    if (!props.selectedRow?.fields) return 100;
+
+    const fieldCount = props.selectedRow.fields.length;
+
+    if (fieldCount === 2) {
+        // For 2 fields: max is 80 (Field 2 needs at least 20%)
+        return 100 - MIN_FIELD_WIDTH;
+    } else if (fieldCount === 3) {
+        // For 3 fields: right handle max is 80 (Field 3 needs at least 20%)
+        return 100 - MIN_FIELD_WIDTH;
+    }
+
+    return 100;
+});
+
 // Compute slider value from field widths
 const sliderValue = computed(() => {
     if (!props.selectedRow?.fields) {
@@ -314,27 +356,42 @@ const sliderValue = computed(() => {
         // Single handle - controls where the split is between Field 1 and Field 2
         const field1Width = getFieldWidth(0);
 
+        // Restrict to exactly 80 if it reaches or exceeds 80
+        let clampedValue;
+        if (field1Width >= 80) {
+            clampedValue = 80;
+        } else if (field1Width <= MIN_FIELD_WIDTH) {
+            clampedValue = MIN_FIELD_WIDTH;
+        } else {
+            clampedValue = field1Width;
+        }
+
         console.log('[SettingsPanel] 2-field slider value:', {
             field1Width,
             field2Width: 100 - field1Width,
-            sliderValue: field1Width
+            clampedValue,
+            sliderValue: clampedValue
         });
 
-        return field1Width;
+        return clampedValue;
     } else if (fieldCount === 3) {
         const field1Width = getFieldWidth(0);
         const field3Width = getFieldWidth(2);
         const rightHandle = 100 - field3Width;
 
+        // Clamp left handle (20-60) and right handle (40-80)
+        const clampedLeft = Math.max(MIN_FIELD_WIDTH, Math.min(100 - 2 * MIN_FIELD_WIDTH, field1Width));
+        const clampedRight = Math.max(2 * MIN_FIELD_WIDTH, Math.min(100 - MIN_FIELD_WIDTH, rightHandle));
+
         console.log('[SettingsPanel] 3-field slider values:', {
             field1Width,
             field3Width,
-            leftHandle: field1Width,
-            rightHandle,
-            field2Width: rightHandle - field1Width
+            leftHandle: clampedLeft,
+            rightHandle: clampedRight,
+            field2Width: clampedRight - clampedLeft
         });
 
-        return [field1Width, rightHandle];
+        return [clampedLeft, clampedRight];
     }
 
     return [0, 100];
@@ -347,32 +404,100 @@ const onSliderChange = (newValue) => {
     }
 
     const fieldCount = props.selectedRow.fields.length;
-    const updatedRow = { ...props.selectedRow };
-    updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
+
+    console.log('[onSliderChange] Raw slider value:', newValue, 'Field count:', fieldCount);
 
     if (fieldCount === 1) {
         // Single field, no slider shown
+        const updatedRow = { ...props.selectedRow };
+        updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
         updatedRow.fields[0].customWidth = 100;
+        emit('update:row', updatedRow);
     } else if (fieldCount === 2) {
         // Single handle - value is where Field 1 ends / Field 2 starts
-        const splitPoint = newValue; // Single value, not array
+        // Enforce constraints: both fields must be at least 20%
+
+        // Check if value is out of bounds - if so, reject the change
+        if (newValue < MIN_FIELD_WIDTH || newValue > (100 - MIN_FIELD_WIDTH)) {
+            console.warn('[onSliderChange] 2-field: Value out of bounds, rejecting change', {
+                newValue,
+                min: MIN_FIELD_WIDTH,
+                max: 100 - MIN_FIELD_WIDTH
+            });
+            return; // Don't update anything
+        }
+
+        const updatedRow = { ...props.selectedRow };
+        updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
+        const splitPoint = newValue;
         updatedRow.fields[0].customWidth = splitPoint;
         updatedRow.fields[1].customWidth = 100 - splitPoint;
+
+        console.log('[onSliderChange] 2-field update:', {
+            rawValue: newValue,
+            splitPoint,
+            field1: splitPoint,
+            field2: 100 - splitPoint
+        });
+
+        emit('update:row', updatedRow);
     } else if (fieldCount === 3) {
         // Range slider - two handles
-        const [leftHandle, rightHandle] = newValue;
-        // Left handle = Field 1 width
-        // Right handle = where Field 3 starts, so Field 3 width = 100 - rightHandle
-        // Field 2 = middle space
-        const field3Width = 100 - rightHandle;
-        updatedRow.fields[0].customWidth = leftHandle;
-        updatedRow.fields[1].customWidth = rightHandle - leftHandle;
-        updatedRow.fields[2].customWidth = field3Width;
-    }
+        let [leftHandle, rightHandle] = newValue;
 
-    emit('update:row', updatedRow);
+        console.log('[onSliderChange] 3-field raw:', { leftHandle, rightHandle });
+
+        // Calculate what the widths would be
+        const field1Width = leftHandle;
+        const field2Width = rightHandle - leftHandle;
+        const field3Width = 100 - rightHandle;
+
+        // Check if any field violates minimum width - if so, reject the change
+        if (field1Width < MIN_FIELD_WIDTH ||
+            field2Width < MIN_FIELD_WIDTH ||
+            field3Width < MIN_FIELD_WIDTH) {
+            console.warn('[onSliderChange] 3-field: Constraints violated, rejecting change', {
+                field1Width,
+                field2Width,
+                field3Width,
+                min: MIN_FIELD_WIDTH
+            });
+            return; // Don't update anything
+        }
+
+        const updatedRow = { ...props.selectedRow };
+        updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
+        updatedRow.fields[0].customWidth = field1Width;
+        updatedRow.fields[1].customWidth = field2Width;
+        updatedRow.fields[2].customWidth = field3Width;
+
+        console.log('[onSliderChange] 3-field update:', {
+            field1Width,
+            field2Width,
+            field3Width
+        });
+
+        emit('update:row', updatedRow);
+    }
 };
 
+// Handle slider drag end - ensure final clamped position
+const onSliderEnd = (event) => {
+    console.log('[onSliderEnd] Drag ended, final value:', sliderValue.value);
+
+    // Force re-clamp to ensure visual position matches actual constraints
+    if (!props.selectedRow?.fields) return;
+
+    const fieldCount = props.selectedRow.fields.length;
+
+    if (fieldCount === 2) {
+        const field1Width = getFieldWidth(0);
+        if (field1Width < MIN_FIELD_WIDTH || field1Width > 100 - MIN_FIELD_WIDTH) {
+            // Re-trigger update with clamped value
+            onSliderChange(sliderValue.value);
+        }
+    }
+};
 
 const handleClose = () => {
     emit('close');
@@ -411,3 +536,7 @@ const updateOption = (idx, value) => {
     emit('update:field', { ...props.selectedField, options: updatedOptions });
 };
 </script>
+
+<style scoped>
+/* No custom slider styles - full width slider */
+</style>
