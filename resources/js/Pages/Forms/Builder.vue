@@ -368,6 +368,14 @@ const removeFieldFromRow = ({ rowIndex, slotIndex }) => {
     const row = rows.value[rowIndex];
     row.fields.splice(slotIndex, 1);
 
+    // Redistribute remaining fields equally to fill the row
+    if (row.fields.length > 0) {
+        const equalWidth = 100 / row.fields.length;
+        row.fields.forEach(field => {
+            field.customWidth = equalWidth;
+        });
+    }
+
     // Remove empty rows (except keep at least one)
     if (row.fields.length === 0 && rows.value.length > 1) {
         // Only remove if it's not the last row

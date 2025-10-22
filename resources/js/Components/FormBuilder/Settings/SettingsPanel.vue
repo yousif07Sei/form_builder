@@ -60,8 +60,8 @@
                     </div>
                 </div>
 
-                <!-- Range Slider for all field counts -->
-                <div>
+                <!-- Slider - Only show for 2+ fields -->
+                <div v-if="selectedRow.fields.length >= 2">
                     <Slider
                         :key="`slider-${selectedRowIndex}-${selectedRow.fields.length}`"
                         :modelValue="sliderValue"
@@ -69,15 +69,12 @@
                         :min="0"
                         :max="100"
                         :step="5"
-                        range
+                        :range="selectedRow.fields.length >= 3"
                         class="w-full mb-2"
                     />
                     <small class="text-gray-500 dark:text-gray-400 block">
-                        <span v-if="selectedRow.fields.length === 1">
-                            Drag right handle to adjust field width
-                        </span>
-                        <span v-else-if="selectedRow.fields.length === 2">
-                            Left handle = Field 1 width | Right handle = Field 2 width (from right)
+                        <span v-if="selectedRow.fields.length === 2">
+                            Drag handle to adjust field widths
                         </span>
                         <span v-else-if="selectedRow.fields.length === 3">
                             Left = Field 1 | Right = Field 3 (from right) | Middle auto-adjusts
@@ -85,6 +82,13 @@
                         <span v-else-if="selectedRow.fields.length === 4">
                             Left = Field 1 | Right = Field 4 (from right) | Fields 2&3 split middle
                         </span>
+                    </small>
+                </div>
+
+                <!-- No slider for single field -->
+                <div v-else-if="selectedRow.fields.length === 1">
+                    <small class="text-gray-500 dark:text-gray-400 block">
+                        Single field takes full row width
                     </small>
                 </div>
             </div>
@@ -307,24 +311,19 @@ const sliderValue = computed(() => {
     const fieldCount = props.selectedRow.fields.length;
 
     if (fieldCount === 1) {
-        // For single field, right handle shows the field's width
-        const field1Width = getFieldWidth(0);
-        return [0, field1Width];
+        // No slider for single field
+        return 100;
     } else if (fieldCount === 2) {
-        // Left handle = Field 1 width
-        // Right handle = where Field 2 starts (so Field 2 width is adjustable from right)
+        // Single handle - controls where the split is between Field 1 and Field 2
         const field1Width = getFieldWidth(0);
-        const field2Width = getFieldWidth(1);
-        const rightHandle = 100 - field2Width;
 
-        console.log('[SettingsPanel] 2-field slider values:', {
+        console.log('[SettingsPanel] 2-field slider value:', {
             field1Width,
-            field2Width,
-            leftHandle: field1Width,
-            rightHandle
+            field2Width: 100 - field1Width,
+            sliderValue: field1Width
         });
 
-        return [field1Width, rightHandle];
+        return field1Width;
     } else if (fieldCount === 3) {
         const field1Width = getFieldWidth(0);
         const field3Width = getFieldWidth(2);
@@ -364,20 +363,20 @@ const onSliderChange = (newValue) => {
     }
 
     const fieldCount = props.selectedRow.fields.length;
-    const [leftHandle, rightHandle] = newValue;
-
     const updatedRow = { ...props.selectedRow };
     updatedRow.fields = updatedRow.fields.map(f => ({ ...f }));
 
     if (fieldCount === 1) {
-        updatedRow.fields[0].customWidth = rightHandle;
+        // Single field, no slider shown
+        updatedRow.fields[0].customWidth = 100;
     } else if (fieldCount === 2) {
-        // Left handle = Field 1 width
-        // Right handle = where Field 2 starts (from left), so Field 2 width = 100 - rightHandle
-        const field2Width = 100 - rightHandle;
-        updatedRow.fields[0].customWidth = leftHandle;
-        updatedRow.fields[1].customWidth = field2Width;
+        // Single handle - value is where Field 1 ends / Field 2 starts
+        const splitPoint = newValue; // Single value, not array
+        updatedRow.fields[0].customWidth = splitPoint;
+        updatedRow.fields[1].customWidth = 100 - splitPoint;
     } else if (fieldCount === 3) {
+        // Range slider - two handles
+        const [leftHandle, rightHandle] = newValue;
         // Left handle = Field 1 width
         // Right handle = where Field 3 starts, so Field 3 width = 100 - rightHandle
         // Field 2 = middle space
@@ -386,6 +385,8 @@ const onSliderChange = (newValue) => {
         updatedRow.fields[1].customWidth = rightHandle - leftHandle;
         updatedRow.fields[2].customWidth = field3Width;
     } else if (fieldCount === 4) {
+        // Range slider - two handles
+        const [leftHandle, rightHandle] = newValue;
         // Left handle = Field 1 width
         // Right handle = where Field 4 starts, so Field 4 width = 100 - rightHandle
         // Fields 2 and 3 split the middle space equally
