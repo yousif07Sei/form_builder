@@ -68,11 +68,10 @@
                     </div>
                     <Slider
                         :key="`slider-${selectedRowIndex}-${selectedRow.fields.length}`"
-                        :modelValue="sliderValue"
+                        v-model="sliderModel"
                         @update:modelValue="onSliderChange"
-                        @slideend="onSliderEnd"
-                        :min="selectedRow.fields.length === 3 ? 20 : 20"
-                        :max="selectedRow.fields.length === 3 ? 80 : 80"
+                        :min="0"
+                        :max="100"
                         :step="5"
                         :range="selectedRow.fields.length >= 3"
                         class="w-full mb-2"
@@ -222,7 +221,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, watch, nextTick, ref } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
@@ -395,6 +394,66 @@ const sliderValue = computed(() => {
     }
 
     return [0, 100];
+});
+
+// Reactive slider model that we can directly mutate
+const sliderModel = ref(sliderValue.value);
+
+// Sync sliderModel with sliderValue computed when fields change
+watch(sliderValue, (newVal) => {
+    sliderModel.value = newVal;
+});
+
+// Watch sliderModel and enforce constraints with nextTick
+watch(sliderModel, async (newVal) => {
+    if (!props.selectedRow?.fields) return;
+
+    const fieldCount = props.selectedRow.fields.length;
+
+    if (fieldCount === 2) {
+        // Single handle - check if out of bounds
+        if (newVal > 80 || newVal < 20) {
+            const correctedValue = newVal > 80 ? 80 : 20;
+
+            console.log('[watch sliderModel] 2-field: Resetting slider', {
+                invalidValue: newVal,
+                correctedValue
+            });
+
+            // Wait for DOM to update, then reset slider value
+            await nextTick();
+            sliderModel.value = correctedValue;
+        }
+    } else if (fieldCount === 3) {
+        // Range slider - check if any field would be < 20%
+        const [leftHandle, rightHandle] = Array.isArray(newVal) ? newVal : [newVal, newVal];
+
+        const field1Width = leftHandle;
+        const field2Width = rightHandle - leftHandle;
+        const field3Width = 100 - rightHandle;
+
+        // If any field violates minimum, correct handles
+        if (field1Width < 20 || field2Width < 20 || field3Width < 20) {
+            console.log('[watch sliderModel] 3-field: Correcting handles', {
+                field1Width,
+                field2Width,
+                field3Width
+            });
+
+            // Clamp to maintain minimums
+            let correctedLeft = Math.max(20, Math.min(60, leftHandle));
+            let correctedRight = Math.max(40, Math.min(80, rightHandle));
+
+            // Ensure middle field is at least 20%
+            if (correctedRight - correctedLeft < 20) {
+                correctedRight = correctedLeft + 20;
+            }
+
+            // Wait for DOM to update, then reset slider value
+            await nextTick();
+            sliderModel.value = [correctedLeft, correctedRight];
+        }
+    }
 });
 
 // Handle slider change
