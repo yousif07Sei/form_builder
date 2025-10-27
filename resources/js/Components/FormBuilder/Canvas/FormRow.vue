@@ -43,7 +43,7 @@
 
                     <!-- Field Content -->
                     <div
-                        class="h-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all overflow-hidden cursor-pointer hover:border-primary-400 dark:hover:border-primary-500"
+                        class="h-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent transition-all overflow-hidden cursor-pointer"
                         :class="{ 'ring-2 ring-blue-500 border-blue-500': isFieldSelected(index) }"
                         @click.stop="handleFieldClick(index)"
                     >

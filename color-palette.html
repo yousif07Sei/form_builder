@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Builder Color Palette</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #171717;
+        }
+        .subtitle {
+            color: #757575;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        h2 {
+            font-size: 24px;
+            margin: 40px 0 20px 0;
+            color: #262626;
+            border-bottom: 2px solid #e5e5e5;
+            padding-bottom: 10px;
+        }
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .color-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .color-swatch {
+            height: 100px;
+            width: 100%;
+        }
+        .color-info {
+            padding: 12px;
+            background: #fafafa;
+        }
+        .color-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #171717;
+            margin-bottom: 4px;
+        }
+        .color-hex {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #525252;
+        }
+        .color-usage {
+            font-size: 12px;
+            color: #757575;
+            margin-top: 4px;
+        }
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .mode-toggle:hover {
+            background: #262626;
+        }
+        body.dark-mode {
+            background: #171717;
+        }
+        body.dark-mode .container {
+            background: #262626;
+        }
+        body.dark-mode h1 {
+            color: #ffffff;
+        }
+        body.dark-mode h2 {
+            color: #e5e5e5;
+            border-bottom-color: #404040;
+        }
+        body.dark-mode .subtitle {
+            color: #a3a3a3;
+        }
+        body.dark-mode .color-card {
+            border-color: #404040;
+        }
+        body.dark-mode .color-info {
+            background: #171717;
+        }
+        body.dark-mode .color-name {
+            color: #ffffff;
+        }
+        body.dark-mode .color-hex {
+            color: #a3a3a3;
+        }
+        body.dark-mode .color-usage {
+            color: #737373;
+        }
+        body.dark-mode .mode-toggle {
+            background: #ffffff;
+            color: #000;
+        }
+        body.dark-mode .mode-toggle:hover {
+            background: #e5e5e5;
+        }
+    </style>
+</head>
+<body>
+    <button class="mode-toggle" onclick="toggleDarkMode()">
+        <span id="mode-text">🌙 Dark Mode</span>
+    </button>
+
+    <div class="container">
+        <h1>🎨 Form Builder Color Palette</h1>
+        <p class="subtitle">Visual representation of all colors used in the application</p>
+
+        <h2>Primary Colors (Buttons, Links, Accents)</h2>
+        <div class="color-grid">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #fafafa;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-50</div>
+                    <div class="color-hex">#fafafa</div>
+                    <div class="color-usage">Very light backgrounds</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #f5f5f5;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-100</div>
+                    <div class="color-hex">#f5f5f5</div>
+                    <div class="color-usage">Light backgrounds</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #eeeeee;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-200</div>
+                    <div class="color-hex">#eeeeee</div>
+                    <div class="color-usage">Subtle backgrounds</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #e0e0e0;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-300</div>
+                    <div class="color-hex">#e0e0e0</div>
+                    <div class="color-usage">Borders, dividers</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #bdbdbd;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-400</div>
+                    <div class="color-hex">#bdbdbd</div>
+                    <div class="color-usage">Hover states</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #000000;"></div>
+                <div class="color-info">
+                    <div class="color-name">primary-500-950</div>
+                    <div class="color-hex">#000000</div>
+                    <div class="color-usage">⭐ Main primary color</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>🌞 Light Mode - Surface Colors</h2>
+        <div class="color-grid">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #ffffff; border: 1px solid #e5e5e5;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-0</div>
+                    <div class="color-hex">#ffffff</div>
+                    <div class="color-usage">Pure white</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #fafafa;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-50</div>
+                    <div class="color-hex">#fafafa</div>
+                    <div class="color-usage">Off white</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #f9f9f9;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-100</div>
+                    <div class="color-hex">#f9f9f9</div>
+                    <div class="color-usage">Very light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #f5f5f5;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-200</div>
+                    <div class="color-hex">#f5f5f5</div>
+                    <div class="color-usage">Light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #eeeeee;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-300</div>
+                    <div class="color-hex">#eeeeee</div>
+                    <div class="color-usage">Light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #e0e0e0;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-400</div>
+                    <div class="color-hex">#e0e0e0</div>
+                    <div class="color-usage">Medium light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #9e9e9e;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-500</div>
+                    <div class="color-hex">#9e9e9e</div>
+                    <div class="color-usage">Medium gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #757575;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-600</div>
+                    <div class="color-hex">#757575</div>
+                    <div class="color-usage">Dark gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #424242;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-700</div>
+                    <div class="color-hex">#424242</div>
+                    <div class="color-usage">Very dark gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #212121;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-800</div>
+                    <div class="color-hex">#212121</div>
+                    <div class="color-usage">Near black</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #000000;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-900</div>
+                    <div class="color-hex">#000000</div>
+                    <div class="color-usage">Pure black</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>🌙 Dark Mode - Surface Colors</h2>
+        <div class="color-grid">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #000000;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-0</div>
+                    <div class="color-hex">#000000</div>
+                    <div class="color-usage">Pure black</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #0a0a0a;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-50</div>
+                    <div class="color-hex">#0a0a0a</div>
+                    <div class="color-usage">Very dark</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #171717;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-100</div>
+                    <div class="color-hex">#171717</div>
+                    <div class="color-usage">Dark gray (bg-gray-900)</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #262626;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-200</div>
+                    <div class="color-hex">#262626</div>
+                    <div class="color-usage">Dark gray (bg-gray-800)</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #404040;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-300</div>
+                    <div class="color-hex">#404040</div>
+                    <div class="color-usage">Medium dark gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #525252;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-400</div>
+                    <div class="color-hex">#525252</div>
+                    <div class="color-usage">Medium gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #737373;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-500</div>
+                    <div class="color-hex">#737373</div>
+                    <div class="color-usage">Gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #a3a3a3;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-600</div>
+                    <div class="color-hex">#a3a3a3</div>
+                    <div class="color-usage">Light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #d4d4d4;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-700</div>
+                    <div class="color-hex">#d4d4d4</div>
+                    <div class="color-usage">Very light gray</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #e5e5e5;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-800</div>
+                    <div class="color-hex">#e5e5e5</div>
+                    <div class="color-usage">Near white</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #f5f5f5;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-900</div>
+                    <div class="color-hex">#f5f5f5</div>
+                    <div class="color-usage">Very light</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #ffffff; border: 1px solid #404040;"></div>
+                <div class="color-info">
+                    <div class="color-name">surface-950</div>
+                    <div class="color-hex">#ffffff</div>
+                    <div class="color-usage">Pure white</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Common UI Colors</h2>
+        <div class="color-grid">
+            <div class="color-card">
+                <div class="color-swatch" style="background: #fafafa;"></div>
+                <div class="color-info">
+                    <div class="color-name">Page Background (Light)</div>
+                    <div class="color-hex">#fafafa</div>
+                    <div class="color-usage">bg-gray-50</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #171717;"></div>
+                <div class="color-info">
+                    <div class="color-name">Page Background (Dark)</div>
+                    <div class="color-hex">#171717</div>
+                    <div class="color-usage">bg-gray-900</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #ffffff; border: 1px solid #e5e5e5;"></div>
+                <div class="color-info">
+                    <div class="color-name">Cards/Sidebars (Light)</div>
+                    <div class="color-hex">#ffffff</div>
+                    <div class="color-usage">bg-white</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #262626;"></div>
+                <div class="color-info">
+                    <div class="color-name">Cards (Dark)</div>
+                    <div class="color-hex">#262626</div>
+                    <div class="color-usage">bg-gray-800</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #e5e5e5;"></div>
+                <div class="color-info">
+                    <div class="color-name">Borders (Light)</div>
+                    <div class="color-hex">#e5e5e5</div>
+                    <div class="color-usage">border-gray-200</div>
+                </div>
+            </div>
+            <div class="color-card">
+                <div class="color-swatch" style="background: #404040;"></div>
+                <div class="color-info">
+                    <div class="color-name">Borders (Dark)</div>
+                    <div class="color-hex">#404040</div>
+                    <div class="color-usage">border-gray-700</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            const body = document.body;
+            const modeText = document.getElementById('mode-text');
+
+            body.classList.toggle('dark-mode');
+
+            if (body.classList.contains('dark-mode')) {
+                modeText.textContent = '☀️ Light Mode';
+            } else {
+                modeText.textContent = '🌙 Dark Mode';
+            }
+        }
+    </script>
+</body>
+</html>

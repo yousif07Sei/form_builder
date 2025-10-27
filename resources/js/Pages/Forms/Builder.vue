@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen bg-gray-100 dark:bg-black">
         <!-- Top Bar -->
         <BuilderTopBar
             :form-title="formData.title"
@@ -15,32 +15,38 @@
             <FieldPalette @dragstart="handleFieldDragStart" />
 
             <!-- Center - Form Builder Canvas -->
-            <div class="flex-1 p-6 overflow-y-auto bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800">
+            <div class="flex-1 p-6 overflow-y-auto" style="background: var(--p-surface-0)">
                 <div class="max-w-2xl mx-auto py-12">
                     <!-- Form Header -->
                     <div class="text-center mb-8">
                         <h1
-                            class="text-4xl font-bold text-gray-900 dark:text-white mb-2 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            class="text-4xl font-bold mb-2 cursor-pointer transition-colors"
+                            :style="{ color: 'var(--p-text-color)' }"
                             @click="openFormSettings"
+                            @mouseenter="$event.target.style.color = 'var(--p-text-hover-color)'"
+                            @mouseleave="$event.target.style.color = 'var(--p-text-color)'"
                         >
                             {{ formData.title }}
                         </h1>
                         <p
                             v-if="formData.description"
-                            class="text-lg text-gray-600 dark:text-gray-300 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            class="text-lg cursor-pointer transition-colors"
+                            :style="{ color: 'var(--p-text-muted-color)' }"
                             @click="openFormSettings"
+                            @mouseenter="$event.target.style.color = 'var(--p-text-hover-muted-color)'"
+                            @mouseleave="$event.target.style.color = 'var(--p-text-muted-color)'"
                         >
                             {{ formData.description }}
                         </p>
                     </div>
 
                     <!-- Form Card -->
-                    <Card class="min-h-[600px]">
+                    <Card class="min-h-[600px]" :pt="{ root: { style: 'background: #2a2a2a; border-color: #444;' } }">
                         <template #content>
                             <!-- Rows Container -->
                             <div
                                 class="min-h-[500px] p-4 transition-colors"
-                                :class="{ 'bg-primary-50 dark:bg-primary-900/20': isDragging }"
+                                :class="{ 'bg-gray-50': isDragging }"
                                 @click.self="openFormSettings"
                                 @dragover.prevent="handleCanvasDragOver"
                                 @dragleave="handleCanvasDragLeave"
@@ -49,7 +55,7 @@
                                 <!-- Empty State -->
                                 <div v-if="rows.length === 1 && rows[0].fields.length === 0" class="text-center py-12 mb-4 pointer-events-none">
                                     <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
-                                    <p class="text-gray-600 dark:text-gray-400">
+                                    <p class="text-gray-600">
                                         Drag and drop fields anywhere on the canvas
                                     </p>
                                 </div>
@@ -75,7 +81,7 @@
                     </Card>
 
                     <!-- Footer -->
-                    <div class="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
+                    <div class="text-center mt-8 text-sm text-gray-500">
                         Powered by FormBuilder
                     </div>
                 </div>
@@ -230,9 +236,45 @@ console.log('[Builder] Component initialized successfully');
 
 // Row-based canvas system
 let rowIdCounter = 0;
-const rows = ref([
-    { id: rowIdCounter++, fields: [], gridColumns: 1 }
-]);
+
+// Convert loaded fields back to row-based structure
+const convertFieldsToRows = (fields) => {
+    const rowsArray = [];
+
+    fields.forEach(field => {
+        // Check if this is a multi-column layout (2-columns, 3-columns, etc.)
+        if (['2-columns', '3-columns', '4-columns'].includes(field.type)) {
+            // Extract the children from the column layout
+            const rowFields = field.children || [];
+            rowsArray.push({
+                id: rowIdCounter++,
+                fields: rowFields,
+                gridColumns: field.columns || rowFields.length
+            });
+        } else {
+            // Single field - create a row with just this field
+            rowsArray.push({
+                id: rowIdCounter++,
+                fields: [field],
+                gridColumns: 1
+            });
+        }
+    });
+
+    // Always add an empty row at the end for adding new fields
+    rowsArray.push({ id: rowIdCounter++, fields: [], gridColumns: 1 });
+
+    return rowsArray;
+};
+
+// Initialize rows from loaded fields
+const rows = ref(
+    loadedFields.length > 0
+        ? convertFieldsToRows(loadedFields)
+        : [{ id: rowIdCounter++, fields: [], gridColumns: 1 }]
+);
+
+console.log('[Builder] Rows initialized:', rows.value);
 
 const selectedFieldIndex = ref(null); // Now stores { rowIndex, slotIndex }
 const selectedRowIndex = ref(null); // Stores rowIndex when row itself is selected

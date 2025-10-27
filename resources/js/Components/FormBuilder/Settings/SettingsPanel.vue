@@ -1,15 +1,16 @@
 <template>
     <div
         v-if="selectedFieldIndex !== null || selectedRowIndex !== null || selectedNestedPath !== null || showFormSettings"
-        class="settings-panel-dark w-80 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 overflow-y-auto overflow-x-hidden"
+        class="w-80 border-l border-gray-200 dark:border-gray-700 dark:bg-[#1a1a1a] overflow-y-auto overflow-x-hidden text-gray-900 dark:text-white"
+        style="background: var(--p-surface-0)"
     >
         <!-- Header -->
         <div class="flex items-center justify-between p-4 pb-0">
             <div class="flex-1 min-w-0 mr-2">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase truncate">
+                <h3 class="text-sm font-semibold uppercase truncate text-gray-900 dark:text-white">
                     {{ showFormSettings ? 'Form Settings' : (selectedRow ? 'Row Settings' : (selectedField ? selectedField.label : 'Settings')) }}
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
                     {{ showFormSettings ? 'Configure your form' : (selectedRow ? 'Configure row layout' : (selectedField ? selectedField.type : '')) }}
                 </p>
             </div>
@@ -25,20 +26,20 @@
         <div v-if="showFormSettings" class="p-4">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Form Title
                     </label>
                     <InputText :model-value="formData.title" @update:model-value="updateFormData('title', $event)" class="w-full" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Description
                     </label>
                     <Textarea :model-value="formData.description" @update:model-value="updateFormData('description', $event)" rows="3" class="w-full" />
                 </div>
                 <div class="flex items-center gap-3">
                     <InputSwitch :model-value="formData.is_active" @update:model-value="updateFormData('is_active', $event)" inputId="form_is_active" />
-                    <label for="form_is_active" class="text-sm text-gray-700 dark:text-gray-300">
+                    <label for="form_is_active" class="text-sm text-gray-900 dark:text-white">
                         Form is active
                     </label>
                 </div>
@@ -49,12 +50,12 @@
         <div v-else-if="selectedRow" class="p-4 space-y-4">
             <!-- Show field width controls if row has fields -->
             <div v-if="selectedRow.fields && selectedRow.fields.length > 0">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-3">
                     Row Layout - {{ selectedRow.fields.length }} field{{ selectedRow.fields.length !== 1 ? 's' : '' }}
                 </label>
 
                 <!-- Field width breakdown -->
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-3 space-y-1">
+                <div class="text-xs text-gray-700 dark:text-gray-300 mb-3 space-y-1">
                     <div v-for="(field, index) in selectedRow.fields" :key="index">
                         Field {{ index + 1 }} ({{ field.label }}): <span class="font-medium">{{ getFieldWidth(index) }}%</span>
                     </div>
@@ -63,7 +64,7 @@
                 <!-- Slider - Only show for 2+ fields -->
                 <div v-if="selectedRow.fields.length >= 2">
                     <!-- Debug info -->
-                    <div class="text-xs text-gray-400 mb-1">
+                    <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">
                         Field widths: {{ selectedRow.fields.map(f => Math.round(f.customWidth) + '%').join(', ') }}
                     </div>
                     <Slider
@@ -76,7 +77,7 @@
                         :range="selectedRow.fields.length >= 3"
                         class="w-full mb-2"
                     />
-                    <small class="text-gray-500 dark:text-gray-400 block">
+                    <small class="text-gray-600 dark:text-gray-400 block">
                         <span v-if="selectedRow.fields.length === 2">
                             Drag handle to adjust field widths (min 20% each)
                         </span>
@@ -88,17 +89,17 @@
 
                 <!-- No slider for single field -->
                 <div v-else-if="selectedRow.fields.length === 1">
-                    <small class="text-gray-500 dark:text-gray-400 block">
+                    <small class="text-gray-600 dark:text-gray-400 block">
                         Single field takes full row width
                     </small>
                 </div>
             </div>
 
             <div v-else>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Empty Row
                 </label>
-                <small class="text-gray-500 dark:text-gray-400 block mt-1">
+                <small class="text-gray-600 dark:text-gray-400 block mt-1">
                     Add fields to this row to adjust their widths
                 </small>
             </div>
@@ -122,7 +123,7 @@
                     <div class="space-y-4">
                         <!-- Field Name/Label -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Label *
                             </label>
                             <InputText :model-value="selectedField.label" @update:model-value="updateField('label', $event)" class="w-full" />
@@ -130,7 +131,7 @@
 
                         <!-- Field Name -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Field Name *
                             </label>
                             <InputText :model-value="selectedField.name" @update:model-value="updateField('name', $event)" class="w-full" />
@@ -138,7 +139,7 @@
 
                         <!-- Placeholder -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Placeholder
                             </label>
                             <InputText :model-value="selectedField.placeholder" @update:model-value="updateField('placeholder', $event)" class="w-full" />
@@ -146,7 +147,7 @@
 
                         <!-- Help Text -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Help Text
                             </label>
                             <Textarea :model-value="selectedField.help_text" @update:model-value="updateField('help_text', $event)" rows="2" class="w-full" />
@@ -154,7 +155,7 @@
 
                         <!-- Field Width -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Field Width
                             </label>
                             <Dropdown
@@ -166,7 +167,7 @@
                                 placeholder="Select width"
                                 class="w-full"
                             />
-                            <small class="text-gray-500 dark:text-gray-400 block mt-1">
+                            <small class="text-gray-600 dark:text-gray-400 block mt-1">
                                 Custom width percentage
                             </small>
                         </div>
@@ -174,14 +175,14 @@
                         <!-- Required -->
                         <div class="flex items-center gap-3">
                             <InputSwitch :model-value="selectedField.is_required" @update:model-value="updateField('is_required', $event)" inputId="is_required" />
-                            <label for="is_required" class="text-sm text-gray-700 dark:text-gray-300">
+                            <label for="is_required" class="text-sm text-gray-900 dark:text-white">
                                 Required field
                             </label>
                         </div>
 
                         <!-- Options for select, multiselect, radio, checkbox -->
                         <div v-if="['select', 'multiselect', 'radio', 'checkbox'].includes(selectedField.type)">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                                 Options
                             </label>
                             <div class="space-y-2">
